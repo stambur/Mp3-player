@@ -41,7 +41,6 @@ public:
     ~Dialog();
     QMediaPlayer *myPlayer;
     int lcd_h;
-    void bla();
 
 signals:
     void hw_btn_clicked(int);
@@ -49,7 +48,8 @@ signals:
 public slots:
     void handleKey(const QString&);
     void myDurationSlot(qint64);
-    void on_hw_btn_clicked(int);
+    void onSongChanged(QMediaContent);
+    void onHwBtnClicked(int);
 
 private:
     Ui::Dialog *ui;

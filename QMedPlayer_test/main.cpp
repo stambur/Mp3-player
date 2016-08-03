@@ -1,14 +1,15 @@
 #include "dialog.h"
 #include <QApplication>
 
-//void on_btn1(void);
-//void on_btn2(void);
-//void on_btn3(void);
-//void on_btn4(void);
+#define DEBOUNCE_TIME 50
+
 void btn_int1(void);
 void btn_int2(void);
 void btn_int3(void);
 void btn_int4(void);
+uchar toggle_var_btn1,toggle_var_btn2,toggle_var_btn3,toggle_var_btn4 = 0;
+int time1_btn1,time1_btn2,time1_btn3,time1_btn4 = 0;
+int time2_btn1,time2_btn2,time2_btn3,time2_btn4 = DEBOUNCE_TIME;
 
 Dialog *w;
 
@@ -27,13 +28,11 @@ int main(int argc, char *argv[])
         pullUpDnControl(i, PUD_UP);
     }
 
-    wiringPiISR(21,INT_EDGE_RISING,btn_int1);
-    wiringPiISR(22,INT_EDGE_RISING,btn_int2);
-    wiringPiISR(23,INT_EDGE_RISING,btn_int3);
-    wiringPiISR(24,INT_EDGE_RISING,btn_int4);
+    wiringPiISR(BTN_1,INT_EDGE_RISING,btn_int1);
+    wiringPiISR(BTN_2,INT_EDGE_RISING,btn_int2);
+    wiringPiISR(BTN_3,INT_EDGE_RISING,btn_int3);
+    wiringPiISR(BTN_4,INT_EDGE_RISING,btn_int4);
 
-    //Dialog w;
-    //pt = &w;
     w = new Dialog;
 
     w->show();
@@ -44,21 +43,61 @@ int main(int argc, char *argv[])
 }
 
 void btn_int1() {
-    //w->bla();
-    emit w->hw_btn_clicked(BTN_1);
+    if(!toggle_var_btn1) {
+        time1_btn1 = millis();
+        toggle_var_btn1 = 1;
+    }
+    else {
+        time2_btn1 = millis();
+        toggle_var_btn1 = 0;
+    }
+
+    if((time2_btn1-time1_btn1 > DEBOUNCE_TIME) || (time1_btn1-time2_btn1 > DEBOUNCE_TIME)) {
+        emit w->hw_btn_clicked(BTN_1);
+    }
 }
 
 void btn_int2() {
-    //w->bla();
-    emit w->hw_btn_clicked(BTN_2);
+    if(!toggle_var_btn2) {
+        time1_btn2 = millis();
+        toggle_var_btn2 = 1;
+    }
+    else {
+        time2_btn2 = millis();
+        toggle_var_btn2 = 0;
+    }
+
+    if((time2_btn2-time1_btn2 > DEBOUNCE_TIME) || (time1_btn2-time2_btn2 > DEBOUNCE_TIME)) {
+        emit w->hw_btn_clicked(BTN_2);
+    }
 }
 
 void btn_int3() {
-    //w->bla();
-    emit w->hw_btn_clicked(BTN_3);
+    if(!toggle_var_btn3) {
+        time1_btn3 = millis();
+        toggle_var_btn3 = 1;
+    }
+    else {
+        time2_btn3 = millis();
+        toggle_var_btn3 = 0;
+    }
+
+    if((time2_btn3-time1_btn3 > DEBOUNCE_TIME) || (time1_btn3-time2_btn3 > DEBOUNCE_TIME)) {
+        emit w->hw_btn_clicked(BTN_3);
+    }
 }
 
 void btn_int4() {
-    //w->bla();
-    emit w->hw_btn_clicked(BTN_4);
+    if(!toggle_var_btn4) {
+        time1_btn4 = millis();
+        toggle_var_btn4 = 1;
+    }
+    else {
+        time2_btn4 = millis();
+        toggle_var_btn4 = 0;
+    }
+
+    if((time2_btn4-time1_btn4 > DEBOUNCE_TIME) || (time1_btn4-time2_btn4 > DEBOUNCE_TIME)) {
+        emit w->hw_btn_clicked(BTN_4);
+    }
 }

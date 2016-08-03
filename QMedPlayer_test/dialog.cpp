@@ -1,8 +1,6 @@
 #include "dialog.h"
 #include "ui_dialog.h"
 
-void myFun(void);
-
 Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Dialog)
@@ -33,11 +31,9 @@ Dialog::Dialog(QWidget *parent) :
 
     myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
-    //myPlayer->playlist()->addMedia(content);
     connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(myDurationSlot(qint64)));
-    connect(this, SIGNAL(hw_btn_clicked(int)), this, SLOT(on_hw_btn_clicked(int)));
-    //lcdPrintf(lcd_h,"Hallo Welt");
-    //wiringPiISR(21,INT_EDGE_RISING,myFun);
+    connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
+    connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 
 }
 
@@ -47,16 +43,14 @@ Dialog::~Dialog()
 }
 
 void Dialog::myDurationSlot(qint64 duration) {
+    //ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+}
+
+void Dialog::onSongChanged(QMediaContent song) {
     ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
 }
 
-void Dialog::bla() {
-    qDebug() << "Usao u metodu";
-}
-
 void Dialog::handleKey(const QString& key) {
-    //QProcess* myProcess = new QProcess(this);
-    //QString cmd;
     if(key == "KEY_PLAY") {
         if(myPlayer->state() == QMediaPlayer::StoppedState) {
             myPlayer->play();
@@ -100,26 +94,22 @@ void Dialog::handleKey(const QString& key) {
         delete ui;
         exit(0);
     }
-    //ui->label->setText(QString::number(v.duration[list_iterator-1]));
 }
 
-void Dialog::on_hw_btn_clicked(int btn) {
+void Dialog::onHwBtnClicked(int btn) {
     switch(btn) {
         case BTN_1:
-            qDebug() << "Bla 21" << endl;
+            qDebug() << "Bla 21";
             break;
         case BTN_2:
-            qDebug() << "Bla 22" << endl;
+            qDebug() << "Bla 22";
             break;
         case BTN_3:
-            qDebug() << "Bla 23" << endl;
+            qDebug() << "Bla 23";
             break;
         case BTN_4:
-            qDebug() << "Bla 24" << endl;
+            qDebug() << "Bla 24";
             break;
     }
 }
 
-void myFun(void) {
-    printf("Bla\n");
-}

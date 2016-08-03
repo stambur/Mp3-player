@@ -12,11 +12,17 @@ Dialog::Dialog(QWidget *parent) :
         fprintf (stderr, "lcdInit failed\n") ;
     }
 
+    scrollCounter = 0;
+
     myPlayer = new QMediaPlayer(this);
     QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
 
     Lirc *myLirc = new Lirc(this);
     connect(myLirc,SIGNAL(key_event(QString)),this,SLOT(handleKey(QString)));
+
+    QTimer *myTimer = new QTimer(this);
+    connect(myTimer, SIGNAL(timeout()), this, SLOT(lcdScroll()));
+    myTimer->start(1000);
 
     QString directory = QString::fromUtf8(usbPath());
     QDir dir(directory);
@@ -34,11 +40,17 @@ Dialog::Dialog(QWidget *parent) :
     connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(myDurationSlot(qint64)));
     connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
+    lcdClear(lcd_h);
+    lcdPosition(lcd_h,0,0);
+    //lcdPrintf(lcd_h,"Stopped");
+
+    //ui->listWidget->setCurrentRow(0);
 
 }
 
 Dialog::~Dialog()
 {
+    lcdClear(lcd_h);
     delete ui;
 }
 
@@ -48,12 +60,22 @@ void Dialog::myDurationSlot(qint64 duration) {
 
 void Dialog::onSongChanged(QMediaContent song) {
     ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+    lcdClear(lcd_h);
+    lcdPosition(lcd_h,0,0);
+    currentSong = song.canonicalUrl().fileName();
+    //lcdPad(song.canonicalUrl().fileName().toLatin1().data());
+    //lcdPrintf(lcd_h,song.canonicalUrl().fileName().toLatin1().data());
 }
 
 void Dialog::handleKey(const QString& key) {
     if(key == "KEY_PLAY") {
         if(myPlayer->state() == QMediaPlayer::StoppedState) {
             myPlayer->play();
+
+            lcdClear(lcd_h);
+            lcdPosition(lcd_h,0,0);
+            currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
+            //lcdPrintf(lcd_h,myPlayer->currentMedia().canonicalUrl().fileName().toLatin1().data());
         }
         else if(myPlayer->state() == QMediaPlayer::PausedState) {
             myPlayer->play();
@@ -63,13 +85,19 @@ void Dialog::handleKey(const QString& key) {
         }
     }
     else if(key == "KEY_CH") {
-        myPlayer->stop();
+        myPlayer->stop();    
+        lcdClear(lcd_h);
+        lcdPosition(lcd_h,0,0);
+        lcdPutchar(lcd_h,0xFF);
+        lcdPrintf(lcd_h,"Stopped");
     }
     else if(key == "KEY_NEXT") {
+        scrollCounter = 0;
         myPlayer->playlist()->next();
         myPlayer->play();
     }
     else if(key == "KEY_PREVIOUS") {
+        scrollCounter = 0;
         if(myPlayer->playlist()->currentIndex()==0) {
             myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
         }
@@ -79,18 +107,23 @@ void Dialog::handleKey(const QString& key) {
         myPlayer->play();
     }
     else if(key == "KEY_CH-") {
+        qDebug() << "Position = " + QString::number(myPlayer->position());
         if(myPlayer->position()>5000) {
             myPlayer->setPosition(myPlayer->position() - 5000);
         }
         else {
             myPlayer->setPosition(0);
         }
+        qDebug() << "New position = " + QString::number(myPlayer->position());
     }
     else if(key == "KEY_CH+") {
-        myPlayer->setPosition(myPlayer->position() + 5000);
+        qDebug() << "Position = " + QString::number(myPlayer->position());
+        myPlayer->setPosition(myPlayer->position() + 10000);
+        qDebug() << "New position = " + QString::number(myPlayer->position());
     }
     else {
         myPlayer->stop();
+        lcdClear(lcd_h);
         delete ui;
         exit(0);
     }
@@ -113,3 +146,15 @@ void Dialog::onHwBtnClicked(int btn) {
     }
 }
 
+void Dialog::lcdScroll() {
+    if(myPlayer->state() != QMediaPlayer::StoppedState) {
+        lcdPosition(lcd_h,0,0);     
+        lcdPrintf(lcd_h,currentSong.mid(scrollCounter,16).toLatin1().data());
+        if(scrollCounter+16 < currentSong.length()) {
+            scrollCounter++;
+        }
+        else {
+            scrollCounter = 0;
+        }
+    }
+}

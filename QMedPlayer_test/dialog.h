@@ -6,6 +6,7 @@
 #include <QMediaPlaylist>
 #include <QDir>
 #include <QDebug>
+#include <QTimer>
 #include "lirc.h"
 #include "getpath.h"
 #include <taglib/tag.h>
@@ -39,8 +40,6 @@ class Dialog : public QDialog
 public:
     explicit Dialog(QWidget *parent = 0);
     ~Dialog();
-    QMediaPlayer *myPlayer;
-    int lcd_h;
 
 signals:
     void hw_btn_clicked(int);
@@ -50,9 +49,14 @@ public slots:
     void myDurationSlot(qint64);
     void onSongChanged(QMediaContent);
     void onHwBtnClicked(int);
+    void lcdScroll();
 
 private:
     Ui::Dialog *ui;
+    QMediaPlayer *myPlayer;
+    int lcd_h;
+    QString currentSong;
+    int scrollCounter;
 };
 
 #endif // DIALOG_H

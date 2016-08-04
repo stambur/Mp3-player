@@ -58,6 +58,7 @@ private:
     int lcd_h;
     QString currentSong;
     int scrollCounter;
+    uchar lcdMode;
 };
 
 #endif // DIALOG_H

@@ -12,7 +12,13 @@ Dialog::Dialog(QWidget *parent) :
         fprintf (stderr, "lcdInit failed\n") ;
     }
 
+    uchar vol[8] = {0b00001, 0b00011, 0b11011, 0b11011, 0b11011, 0b00011, 0b00001}; //volume icon
+    uchar pse[8] = {0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011}; //pause icon
+    lcdCharDef(lcd_h, 0, vol);
+    lcdCharDef(lcd_h,1,pse);
+
     scrollCounter = 0;
+    lcdMode = 0;
 
     myPlayer = new QMediaPlayer(this);
     QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
@@ -37,9 +43,9 @@ Dialog::Dialog(QWidget *parent) :
 
     myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
-    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
+    //connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
     connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
-    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
+    //connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
     lcdClear(lcd_h);
     lcdPosition(lcd_h,0,0);
@@ -70,8 +76,8 @@ void Dialog::onDurationChanged(qint64 duration) {
 
 void Dialog::onPositionChanged(qint64 pos) {
     if(myPlayer->state() != QMediaPlayer::StoppedState) {
-    lcdPosition(lcd_h,0,1);
-    lcdPrintf(lcd_h,(QString::number(pos/1000/60) + ':' + QString::number(pos/1000%60).rightJustified(2,'0')).toLatin1().data());
+        lcdPosition(lcd_h,0,1);
+        lcdPrintf(lcd_h,(QString::number(pos/1000/60) + ':' + QString::number(pos/1000%60).rightJustified(2,'0')).toLatin1().data());
     }
 }
 
@@ -91,8 +97,8 @@ void Dialog::handleKey(const QString& key) {
             lcdClear(lcd_h);
             currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
 
-            lcdPosition(lcd_h,5,1);
-            lcdPrintf(lcd_h,(QString::number(myPlayer->duration()/1000/60) + ':' + QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
+            //lcdPosition(lcd_h,5,1);
+            //lcdPrintf(lcd_h,(QString::number(myPlayer->duration()/1000/60) + ':' + QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
 
             //lcdPrintf(lcd_h,myPlayer->currentMedia().canonicalUrl().fileName().toLatin1().data());
         }
@@ -146,6 +152,12 @@ void Dialog::handleKey(const QString& key) {
         myPlayer->setPosition(myPlayer->position() + 10000);
         qDebug() << "New position = " + QString::number(myPlayer->position());
     }
+    else if(key == "KEY_UP") {
+        myPlayer->setVolume(myPlayer->volume() + 5);
+    }
+    else if(key == "KEY_DOWN") {
+        myPlayer->setVolume(myPlayer->volume() - 5);
+    }
     else {
         myPlayer->stop();
         lcdClear(lcd_h);
@@ -156,16 +168,16 @@ void Dialog::handleKey(const QString& key) {
 
 void Dialog::onHwBtnClicked(int btn) {
     switch(btn) {
-        case BTN_1:
-            qDebug() << "Bla 21";
+        case BTN_1: //mode
+            lcdMode ^= 1;
             break;
-        case BTN_2:
+        case BTN_2: //play/pause(mode=0) / stop(mode=1)
             qDebug() << "Bla 22";
             break;
-        case BTN_3:
+        case BTN_3: //prev(mode=0) / vol_down(mode=1)
             qDebug() << "Bla 23";
             break;
-        case BTN_4:
+        case BTN_4: //next(mode=0) / vol_up(mode=1)
             qDebug() << "Bla 24";
             break;
     }
@@ -173,6 +185,7 @@ void Dialog::onHwBtnClicked(int btn) {
 
 void Dialog::lcdScroll() {
     if(myPlayer->state() != QMediaPlayer::StoppedState) {
+        //lcdClear(lcd_h);
         lcdPosition(lcd_h,0,0);     
         lcdPrintf(lcd_h,currentSong.mid(scrollCounter,16).toLatin1().data());
         if(scrollCounter+16 < currentSong.length()) {
@@ -180,6 +193,23 @@ void Dialog::lcdScroll() {
         }
         else {
             scrollCounter = 0;
+        }
+
+        lcdPosition(lcd_h,0,1);
+        lcdPrintf(lcd_h,(QString::number(myPlayer->position()/1000/60) + ':' +
+                         QString::number(myPlayer->position()/1000%60).rightJustified(2,'0') + '/' +
+                         QString::number(myPlayer->duration()/1000/60) + ':' +
+                         QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
+        lcdPosition(lcd_h,12,1);
+        if(myPlayer->state() != QMediaPlayer::PausedState) {
+            lcdPutchar(lcd_h,0);
+            lcdPosition(lcd_h,13,1);
+            lcdPrintf(lcd_h,QString::number(myPlayer->volume()).rightJustified(3).toLatin1().data());
+        }
+        else {
+            lcdPrintf(lcd_h, "P ");
+            lcdPutchar(lcd_h,1);
+            lcdPutchar(lcd_h,' ');
         }
     }
 }

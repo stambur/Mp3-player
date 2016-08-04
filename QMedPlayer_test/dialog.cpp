@@ -37,12 +37,18 @@ Dialog::Dialog(QWidget *parent) :
 
     myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
-    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(myDurationSlot(qint64)));
+    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
     connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
+    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
     lcdClear(lcd_h);
     lcdPosition(lcd_h,0,0);
-    //lcdPrintf(lcd_h,"Stopped");
+    lcdPutchar(lcd_h,0xFF);
+    lcdPutchar(lcd_h,0xFF);
+    lcdPrintf(lcd_h,"Play stopped");
+    for(int i=0; i<18; i++) {
+        lcdPutchar(lcd_h,0xFF);
+    }
 
     //ui->listWidget->setCurrentRow(0);
 
@@ -54,14 +60,25 @@ Dialog::~Dialog()
     delete ui;
 }
 
-void Dialog::myDurationSlot(qint64 duration) {
+void Dialog::onDurationChanged(qint64 duration) {
     //ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+    if(myPlayer->state() != QMediaPlayer::StoppedState) {
+        lcdPosition(lcd_h,5,1);
+        lcdPrintf(lcd_h,(QString::number(duration/1000/60) + ':' + QString::number(duration/1000%60).rightJustified(2,'0')).toLatin1().data());
+    }
+}
+
+void Dialog::onPositionChanged(qint64 pos) {
+    if(myPlayer->state() != QMediaPlayer::StoppedState) {
+    lcdPosition(lcd_h,0,1);
+    lcdPrintf(lcd_h,(QString::number(pos/1000/60) + ':' + QString::number(pos/1000%60).rightJustified(2,'0')).toLatin1().data());
+    }
 }
 
 void Dialog::onSongChanged(QMediaContent song) {
     ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
-    lcdClear(lcd_h);
-    lcdPosition(lcd_h,0,0);
+    //lcdClear(lcd_h);
+    //lcdPosition(lcd_h,0,0);
     currentSong = song.canonicalUrl().fileName();
     //lcdPad(song.canonicalUrl().fileName().toLatin1().data());
     //lcdPrintf(lcd_h,song.canonicalUrl().fileName().toLatin1().data());
@@ -71,10 +88,12 @@ void Dialog::handleKey(const QString& key) {
     if(key == "KEY_PLAY") {
         if(myPlayer->state() == QMediaPlayer::StoppedState) {
             myPlayer->play();
-
             lcdClear(lcd_h);
-            lcdPosition(lcd_h,0,0);
             currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
+
+            lcdPosition(lcd_h,5,1);
+            lcdPrintf(lcd_h,(QString::number(myPlayer->duration()/1000/60) + ':' + QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
+
             //lcdPrintf(lcd_h,myPlayer->currentMedia().canonicalUrl().fileName().toLatin1().data());
         }
         else if(myPlayer->state() == QMediaPlayer::PausedState) {
@@ -89,15 +108,21 @@ void Dialog::handleKey(const QString& key) {
         lcdClear(lcd_h);
         lcdPosition(lcd_h,0,0);
         lcdPutchar(lcd_h,0xFF);
-        lcdPrintf(lcd_h,"Stopped");
+        lcdPutchar(lcd_h,0xFF);
+        lcdPrintf(lcd_h,"Play stopped");
+        for(int i=0; i<18; i++) {
+            lcdPutchar(lcd_h,0xFF);
+        }
     }
     else if(key == "KEY_NEXT") {
         scrollCounter = 0;
+        lcdClear(lcd_h);
         myPlayer->playlist()->next();
         myPlayer->play();
     }
     else if(key == "KEY_PREVIOUS") {
         scrollCounter = 0;
+        lcdClear(lcd_h);
         if(myPlayer->playlist()->currentIndex()==0) {
             myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
         }

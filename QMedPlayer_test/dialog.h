@@ -46,8 +46,9 @@ signals:
 
 public slots:
     void handleKey(const QString&);
-    void myDurationSlot(qint64);
+    void onDurationChanged(qint64);
     void onSongChanged(QMediaContent);
+    void onPositionChanged(qint64);
     void onHwBtnClicked(int);
     void lcdScroll();
 

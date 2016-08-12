@@ -18,8 +18,7 @@
  */
 
 #include "lirc.h"
-//#include "lirc.moc"
-#include <qsocketnotifier.h>
+#include <QSocketNotifier>
 #include <QDebug>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -41,7 +40,7 @@ Lirc::Lirc( QObject *parent)
         qDebug() << "lirc: Couldn't read config file" << endl;
         _config = 0;
     }
-    qDebug() << "lirc: Succesfully initialized" << endl;
+    //qDebug() << "lirc: Succesfully initialized" << endl;
 
     QSocketNotifier* sn = new QSocketNotifier( _lircfd, QSocketNotifier::Read, parent );
     QObject::connect( sn, SIGNAL(activated(int)), this, SLOT(dataReceived()) );
@@ -69,7 +68,7 @@ void Lirc::dataReceived()
             free(code);
             continue;
         }
-        qDebug() << "lirc: key '" << event << "' repeat " << repeat << endl;
+        //qDebug() << "lirc: key '" << event << "' repeat " << repeat << endl;
         emit Lirc::key_event(event);
 
         free(code);

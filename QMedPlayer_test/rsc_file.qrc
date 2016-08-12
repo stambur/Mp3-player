@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/imgs">
+        <file>pi_notes.jpg</file>
+        <file>logo.png</file>
+        <file>radio.jpg</file>
+        <file>RPi_music.jpg</file>
+    </qresource>
+</RCC>

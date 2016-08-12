@@ -20,6 +20,20 @@ Dialog::Dialog(QWidget *parent) :
     scrollCounter = 0;
     lcdMode = 0;
 
+    sample.resize(SPECSIZE);
+    calculator = new FFTCalc();
+    probe = new QAudioProbe();
+    qRegisterMetaType< QVector<double> >("QVector<double>");
+
+    connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),
+              this, SLOT(processBuffer(QAudioBuffer)));
+    connect(this,  SIGNAL(spectrumChanged(QVector<double>&)),
+              this,SLOT(loadSamples(QVector<double>&)));
+    connect(this,  SIGNAL(levels(double,double)),
+            this,SLOT(loadLevels(double,double)));
+    connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
+            this, SLOT(spectrumAvailable(QVector<double>)));
+
     myPlayer = new QMediaPlayer(this);
     QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
 
@@ -35,12 +49,12 @@ Dialog::Dialog(QWidget *parent) :
 
     QString directory = QString::fromUtf8(usbPath());
     QDir dir(directory);
-    QStringList files = dir.entryList(QStringList() << "*.mp3",QDir::Files);
+    QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
     QList<QMediaContent> content;
     for(const QString& f:files)
     {
-        content.push_back(QUrl::fromLocalFile(dir.path()+"/" + f));
-        TagLib::FileRef fil((dir.path()+"/" + f).toLatin1().data());
+        content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
+        TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
         ui->listWidget->addItem(f); //+ "\t" + QString::number(fil.audioProperties()->length() / 60) + ':' + QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
         ui->listWidget_2->addItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
                                   QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
@@ -51,19 +65,27 @@ Dialog::Dialog(QWidget *parent) :
         //count++;
 
     }
-    ui->tableWidget->adjustSize();
+    ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->listWidget->setTextElideMode(Qt::ElideRight);
     ui->tableWidget->horizontalHeader()->setVisible(false);
     ui->tableWidget->setShowGrid(false);
-    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->tableWidget->setWordWrap(false);
+    //ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    //ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    //ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
+    //ui->tableWidget->setRowHeight(0,5);
+    ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
+    ui->tableWidget->setColumnWidth(1,50);
+    //ui->tableWidget->horizontalHeader()->
+    ui->tableWidget->adjustSize();
+
     myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
     //connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
     connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
     //connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
+    connect(myPlayer,SIGNAL(metaDataChanged()),this,SLOT(onMetaDataChanged()));
     lcdClear(lcd_h);
     lcdPosition(lcd_h,0,0);
     lcdPutchar(lcd_h,0xFF);
@@ -74,6 +96,7 @@ Dialog::Dialog(QWidget *parent) :
     }
 
     //ui->listWidget->setCurrentRow(0);
+    probe->setSource(myPlayer);
 
 }
 
@@ -81,6 +104,16 @@ Dialog::~Dialog()
 {
     lcdClear(lcd_h);
     delete ui;
+}
+
+void Dialog::mySlot() {
+    //qDebug() << "Usao u slot";
+}
+
+void Dialog::onMetaDataChanged() {
+    if(myPlayer->isMetaDataAvailable()) {
+        ui->label->setText(myPlayer->metaData("AudioBitRate").toString());
+    }
 }
 
 void Dialog::onDurationChanged(qint64 duration) {
@@ -96,12 +129,10 @@ void Dialog::onSongChanged(QMediaContent song) {
     //lcdClear(lcd_h);
     //lcdPosition(lcd_h,0,0);
     currentSong = song.canonicalUrl().fileName();
-    //lcdPad(song.canonicalUrl().fileName().toLatin1().data());
-    //lcdPrintf(lcd_h,song.canonicalUrl().fileName().toLatin1().data());
 }
 
 void Dialog::handleKey(const QString& key) {
-    if(key == "KEY_PLAY") {
+    if(key == tr("KEY_PLAY")) {
         switch(myPlayer->state()) {
             case QMediaPlayer::StoppedState:
                 myPlayer->play();
@@ -116,16 +147,16 @@ void Dialog::handleKey(const QString& key) {
                 break;
         }
     }
-    else if(key == "KEY_CH") {
+    else if(key == tr("KEY_CH")) {
         myPlayer->stop();
     }
-    else if(key == "KEY_NEXT") {
+    else if(key == tr("KEY_NEXT")) {
         scrollCounter = 0;
         lcdClear(lcd_h);
         myPlayer->playlist()->next();
         myPlayer->play();
     }
-    else if(key == "KEY_PREVIOUS") {
+    else if(key == tr("KEY_PREVIOUS")) {
         scrollCounter = 0;
         lcdClear(lcd_h);
         if(myPlayer->playlist()->currentIndex()==0) {
@@ -136,25 +167,25 @@ void Dialog::handleKey(const QString& key) {
         }
         myPlayer->play();
     }
-    else if(key == "KEY_CH-") {
-        qDebug() << "Position = " + QString::number(myPlayer->position());
+    else if(key == tr("KEY_CH-")) {
+        //qDebug() << "Position = " + QString::number(myPlayer->position());
         if(myPlayer->position()>5000) {
             myPlayer->setPosition(myPlayer->position() - 5000);
         }
         else {
             myPlayer->setPosition(0);
         }
-        qDebug() << "New position = " + QString::number(myPlayer->position());
+        //qDebug() << "New position = " + QString::number(myPlayer->position());
     }
-    else if(key == "KEY_CH+") {
-        qDebug() << "Position = " + QString::number(myPlayer->position());
-        myPlayer->setPosition(myPlayer->position() + 10000);
-        qDebug() << "New position = " + QString::number(myPlayer->position());
+    else if(key == tr("KEY_CH+")) {
+        //qDebug() << "Position = " + QString::number(myPlayer->position());
+        myPlayer->setPosition(myPlayer->position() + 5000);
+        //qDebug() << "New position = " + QString::number(myPlayer->position());
     }
-    else if(key == "KEY_UP") {
+    else if(key == tr("KEY_UP")) {
         myPlayer->setVolume(myPlayer->volume() + 5);
     }
-    else if(key == "KEY_DOWN") {
+    else if(key == tr("KEY_DOWN")) {
         myPlayer->setVolume(myPlayer->volume() - 5);
     }
     else {
@@ -268,4 +299,100 @@ void Dialog::lcdScroll() {
             lcdPutchar(lcd_h,0xFF);
         }
     }
+}
+
+
+void Dialog::processBuffer(QAudioBuffer buffer){
+  qreal peakValue;
+  int duration;
+
+  if(buffer.frameCount() < 512)
+    return;
+
+  // return left and right audio mean levels
+  levelLeft = levelRight = 0;
+  // It only knows how to process stereo audio frames
+  // mono frames = :P
+  if(buffer.format().channelCount() != 2)
+    return;
+
+  sample.resize(buffer.frameCount());
+  // audio is signed int
+  if(buffer.format().sampleType() == QAudioFormat::SignedInt){
+    QAudioBuffer::S16S *data = buffer.data<QAudioBuffer::S16S>();
+    // peak value changes according to sample size.
+    if (buffer.format().sampleSize() == 32)
+      peakValue=INT_MAX;
+    else if (buffer.format().sampleSize() == 16)
+      peakValue=SHRT_MAX;
+    else
+      peakValue=CHAR_MAX;
+
+    // scale everything to [0,1]
+    for(int i=0; i<buffer.frameCount(); i++){
+      // for visualization purposes, we only need one of the
+      // left/right channels
+      sample[i] = data[i].left/peakValue;
+      levelLeft+= abs(data[i].left)/peakValue;
+      levelRight+= abs(data[i].right)/peakValue;
+    }
+  }
+
+  // audio is unsigned int
+  else if(buffer.format().sampleType() == QAudioFormat::UnSignedInt){
+    QAudioBuffer::S16U *data = buffer.data<QAudioBuffer::S16U>();
+    if (buffer.format().sampleSize() == 32)
+      peakValue=UINT_MAX;
+    else if (buffer.format().sampleSize() == 16)
+      peakValue=USHRT_MAX;
+    else
+      peakValue=UCHAR_MAX;
+    for(int i=0; i<buffer.frameCount(); i++){
+      sample[i] = data[i].left/peakValue;
+      levelLeft+= abs(data[i].left)/peakValue;
+      levelRight+= abs(data[i].right)/peakValue;
+    }
+  }
+
+  // audio is float type
+  else if(buffer.format().sampleType() == QAudioFormat::Float){
+    QAudioBuffer::S32F *data = buffer.data<QAudioBuffer::S32F>();
+    peakValue = 1.00003;
+    for(int i=0; i<buffer.frameCount(); i++){
+      sample[i] = data[i].left/peakValue;
+      // test if sample[i] is infinity (it works)
+      // some tests produced infinity values :p
+      if(sample[i] != sample[i]){
+        sample[i] = 0;
+      }
+      else{
+        levelLeft+= abs(data[i].left)/peakValue;
+        levelRight+= abs(data[i].right)/peakValue;
+      }
+    }
+  }
+  // if the probe is listening to the audio
+  // do fft calculations
+  // when it is done, calculator will tell us
+  if(probe->isActive()){
+    duration = buffer.format().durationForBytes(buffer.frameCount())/1000;
+    calculator->calc(sample, duration);
+  }
+  // tells anyone interested about left and right mean levels
+  emit levels(levelLeft/buffer.frameCount(),levelRight/buffer.frameCount());
+}
+
+// what to do when fft spectrum is available
+void Dialog::spectrumAvailable(QVector<double> spectrum){
+  // just tell the spectrum
+  // the visualization widget will catch the signal...
+  emit spectrumChanged(spectrum);
+}
+
+void Dialog::loadSamples(QVector<double>& samples) {
+    qDebug() << "loadSamples";
+}
+
+void Dialog::loadLevels(double left, double right) {
+    qDebug() << "loadLevels";
 }

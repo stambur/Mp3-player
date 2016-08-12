@@ -7,10 +7,15 @@
 #include <QDir>
 #include <QDebug>
 #include <QTimer>
+#include <QSplashScreen>
 #include "lirc.h"
 #include "getpath.h"
 #include <taglib/tag.h>
 #include <taglib/fileref.h>
+
+#include <QAudioBuffer>
+#include <QAudioProbe>
+#include "fftcalc.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -44,13 +49,23 @@ public:
 signals:
     void hw_btn_clicked(int);
 
+    int spectrumChanged(QVector<double> &sample);
+    int levels(double left, double right);
+
 public slots:
     void handleKey(const QString&);
     void onDurationChanged(qint64);
     void onSongChanged(QMediaContent);
     void onPositionChanged(qint64);
+    void onMetaDataChanged();
     void onHwBtnClicked(int);
     void lcdScroll();
+    void mySlot();
+
+    void processBuffer(QAudioBuffer buffer);
+    void spectrumAvailable(QVector<double> spectrum);
+    void loadSamples(QVector<double>&);
+    void loadLevels(double,double);
 
 private:
     Ui::Dialog *ui;
@@ -59,6 +74,12 @@ private:
     QString currentSong;
     int scrollCounter;
     uchar lcdMode;
+
+    double levelLeft, levelRight;
+    QVector<double> sample;
+    QVector<double> spectrum;
+    QAudioProbe *probe;
+    FFTCalc *calculator;
 };
 
 #endif // DIALOG_H

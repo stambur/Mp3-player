@@ -18,6 +18,11 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     int retVal;
 
+    QSplashScreen *splash = new QSplashScreen;
+    splash->setPixmap(QPixmap(":/imgs/pi_notes.jpg"));
+    splash->show();
+    //splash->showMessage(QObject::tr("Setting up wiringPi..."), Qt::AlignBottom, Qt::magenta);
+
     if (wiringPiSetup() < 0) {
         fprintf (stderr, "Unable to open serial device: %s\n", strerror (errno));
         return 1;
@@ -36,6 +41,9 @@ int main(int argc, char *argv[])
     w = new Dialog;
 
     w->show();
+    splash->finish(w);
+    delete splash;
+
     retVal = a.exec();
 
     delete w;

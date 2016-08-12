@@ -23,12 +23,19 @@ CONFIG += c++11
 SOURCES += main.cpp\
         dialog.cpp \
     lirc.cpp \
-    getpath.cpp
+    getpath.cpp \
+    fft.cpp \
+    fftcalc.cpp
 
 HEADERS  += dialog.h \
     lirc.h \
-    getpath.h
+    getpath.h \
+    fft.h \
+    fftcalc.h
 
 FORMS    += dialog.ui
 
 OTHER_FILES +=
+
+RESOURCES += \
+    rsc_file.qrc

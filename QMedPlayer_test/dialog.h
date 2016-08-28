@@ -49,7 +49,7 @@ public:
 signals:
     void hw_btn_clicked(int);
 
-    int spectrumChanged(QVector<double> &sample);
+    //int spectrumChanged(QVector<double> &sample);
     int levels(double left, double right);
 
 public slots:
@@ -62,9 +62,9 @@ public slots:
     void lcdScroll();
     void mySlot();
 
-    void processBuffer(QAudioBuffer buffer);
-    void spectrumAvailable(QVector<double> spectrum);
-    void loadSamples(QVector<double>&);
+    void processBuffer(QAudioBuffer);
+    void spectrumAvailable(QVector<double>);
+    void loadSamples(QVector<double>);
     void loadLevels(double,double);
 
 private:
@@ -77,7 +77,7 @@ private:
 
     double levelLeft, levelRight;
     QVector<double> sample;
-    QVector<double> spectrum;
+    //QVector<double> spectrum;
     QAudioProbe *probe;
     FFTCalc *calculator;
 };

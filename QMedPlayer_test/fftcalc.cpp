@@ -88,7 +88,7 @@ BufferProcessor::BufferProcessor(QObject *parent){
   logscale.resize(SPECSIZE/2+1);
 
   // by default, spectrum is log scaled (compressed)
-  compressed = true;
+  compressed = false;
 
   // window function (HANN)
   for(int i=0; i<SPECSIZE;i++){
@@ -150,7 +150,7 @@ void BufferProcessor::run(){
     return;
   }
 
-  // we does not calc spectra when array is too small
+  // we do not calc spectra when array is too small
   if(array.size() < SPECSIZE){
     return;
   }
@@ -165,10 +165,12 @@ void BufferProcessor::run(){
 
   // some scaling/windowing is needed for displaying the fourier spectrum somewhere
   for(uint i=0; i<SPECSIZE/2;i++){
-    amplitude = SpectrumAnalyserMultiplier*std::abs(complexFrame[i]);
-    amplitude = qMax(qreal(0.0), amplitude);
-    amplitude = qMin(qreal(1.0), amplitude);
-    complexFrame[i] = amplitude;
+//    amplitude = SpectrumAnalyserMultiplier*std::abs(complexFrame[i]);
+//    amplitude = qMax(qreal(0.0), amplitude);
+//    amplitude = qMin(qreal(1.0), amplitude);
+//    complexFrame[i] = amplitude;
+      amplitude = 2*std::abs(complexFrame[i])/SPECSIZE;
+      complexFrame[i] = amplitude;
   }
 
   // audio spectrum is usually compressed for better displaying
@@ -200,14 +202,59 @@ void BufferProcessor::run(){
 
       /* scale (-DB_RANGE, 0.0) to (0.0, 1.0) */
       val = 1 + val / 40;
-      spectrum[i] = CLAMP (val, 0, 1);
+      val *= 100;
+      spectrum[i] = CLAMP (val, 0, 100);
     }
   }
   else{
     // if not compressed, just copy the real part clamped between 0 and 1
-    for(int i=0; i<SPECSIZE/2; i++){
-      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
+//    for(int i=0; i<SPECSIZE/2; i++){
+//      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
+//
+    spectrum.resize(9);
+    //ekvidistantno od 0 do 22050 Hz, dakle 22050/256
+    double frequencies[SPECSIZE/2];
+    double resolution = 22050/(SPECSIZE/2);
+    double sum = 0;
+    double cnt = 0;
+    double central = 16000;
+    double lower,higher;
+    static double max = 300;
+    for(int i=0; i<SPECSIZE/2; i++) {
+        sum = i*resolution;
+        frequencies[i] = sum;
+        //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum);
     }
+
+    for(int i=8; i>=0; i--) {
+        lower = central / sqrt(2);
+        higher = central * sqrt(2);
+        sum = 0;
+        cnt = 0;
+        for(int j=0; j<SPECSIZE/2; j++) {
+            if((frequencies[j] >= lower) && (frequencies[j] <= higher)) {
+                qDebug() << "Sample " << QString::number(complexFrame[j].real()) << "is between " <<
+                            QString::number(lower) << " and " << QString::number(higher);
+                sum += complexFrame[j].real();
+                cnt++;
+            }
+        }
+        sum /= cnt;       
+        //qDebug() << "Central: " << QString::number(central) << "Lower: " << QString::number(lower);
+        central/=2;
+        //if(sum) {
+        spectrum[i] = 10*log10f(sum);
+
+        //}
+        //else {
+            //spectrum[i] = 0;
+        //}
+        //spectrum[i] = sum*100000;
+        qDebug() << "Sample " << QString::number(i) << " in db: " << QString::number(spectrum[i]);
+        //spectrum[i] /= -150;
+    }
+    //qDebug() << "Max = " << QString::number(max);
+
   }
   // emit the spectrum
   emit calculatedSpectrum(spectrum);

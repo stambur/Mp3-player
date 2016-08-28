@@ -20,5 +20,6 @@ typedef std::valarray<Complex> CArray;
  */
 
 void fft(CArray& x);
+void ifft(CArray& x);
 
 #endif

@@ -1,6 +1,8 @@
 #include "dialog.h"
 #include "ui_dialog.h"
 
+#define NUM_BANDS 8
+
 Dialog::Dialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Dialog)
@@ -25,14 +27,17 @@ Dialog::Dialog(QWidget *parent) :
     probe = new QAudioProbe();
     qRegisterMetaType< QVector<double> >("QVector<double>");
 
+
     connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),
               this, SLOT(processBuffer(QAudioBuffer)));
-    connect(this,  SIGNAL(spectrumChanged(QVector<double>&)),
-              this,SLOT(loadSamples(QVector<double>&)));
+//    connect(this,  SIGNAL(spectrumChanged(QVector<double>&)),
+//            this,SLOT(loadSamples(QVector<double>&)));
     connect(this,  SIGNAL(levels(double,double)),
             this,SLOT(loadLevels(double,double)));
+//    connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
+//            this, SLOT(spectrumAvailable(QVector<double>)));
     connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
-            this, SLOT(spectrumAvailable(QVector<double>)));
+            this, SLOT(loadSamples(QVector<double>)));
 
     myPlayer = new QMediaPlayer(this);
     QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
@@ -69,9 +74,6 @@ Dialog::Dialog(QWidget *parent) :
     ui->listWidget->setTextElideMode(Qt::ElideRight);
     ui->tableWidget->horizontalHeader()->setVisible(false);
     ui->tableWidget->setShowGrid(false);
-    //ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    //ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    //ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
     //ui->tableWidget->setRowHeight(0,5);
     ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -96,6 +98,8 @@ Dialog::Dialog(QWidget *parent) :
     }
 
     //ui->listWidget->setCurrentRow(0);
+    //bla->addWidget(ui->horizontalLayout);
+
     probe->setSource(myPlayer);
 
 }
@@ -128,6 +132,15 @@ void Dialog::onSongChanged(QMediaContent song) {
     ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
     //lcdClear(lcd_h);
     //lcdPosition(lcd_h,0,0);
+    ui->progressBar->setValue(ui->progressBar->minimum());
+    ui->progressBar_2->setValue(ui->progressBar->minimum());
+    ui->progressBar_3->setValue(ui->progressBar->minimum());
+    ui->progressBar_4->setValue(ui->progressBar->minimum());
+    ui->progressBar_5->setValue(ui->progressBar->minimum());
+    ui->progressBar_6->setValue(ui->progressBar->minimum());
+    ui->progressBar_7->setValue(ui->progressBar->minimum());
+    ui->progressBar_8->setValue(ui->progressBar->minimum());
+    ui->progressBar_9->setValue(ui->progressBar->minimum());
     currentSong = song.canonicalUrl().fileName();
 }
 
@@ -332,7 +345,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
     for(int i=0; i<buffer.frameCount(); i++){
       // for visualization purposes, we only need one of the
       // left/right channels
-      sample[i] = data[i].left/peakValue;
+      sample[i] = (data[i].left + data[i].right)/2/peakValue;
       levelLeft+= abs(data[i].left)/peakValue;
       levelRight+= abs(data[i].right)/peakValue;
     }
@@ -348,7 +361,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
     else
       peakValue=UCHAR_MAX;
     for(int i=0; i<buffer.frameCount(); i++){
-      sample[i] = data[i].left/peakValue;
+      sample[i] = (data[i].left + data[i].right)/2/peakValue;
       levelLeft+= abs(data[i].left)/peakValue;
       levelRight+= abs(data[i].right)/peakValue;
     }
@@ -357,9 +370,10 @@ void Dialog::processBuffer(QAudioBuffer buffer){
   // audio is float type
   else if(buffer.format().sampleType() == QAudioFormat::Float){
     QAudioBuffer::S32F *data = buffer.data<QAudioBuffer::S32F>();
-    peakValue = 1.00003;
+    //peakValue = 1.00003;
+    peakValue = 1.0;
     for(int i=0; i<buffer.frameCount(); i++){
-      sample[i] = data[i].left/peakValue;
+      sample[i] = (data[i].left + data[i].right)/2/peakValue;
       // test if sample[i] is infinity (it works)
       // some tests produced infinity values :p
       if(sample[i] != sample[i]){
@@ -371,6 +385,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
       }
     }
   }
+
   // if the probe is listening to the audio
   // do fft calculations
   // when it is done, calculator will tell us
@@ -386,13 +401,52 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 void Dialog::spectrumAvailable(QVector<double> spectrum){
   // just tell the spectrum
   // the visualization widget will catch the signal...
-  emit spectrumChanged(spectrum);
+  // emit spectrumChanged(spectrum);
 }
 
-void Dialog::loadSamples(QVector<double>& samples) {
-    qDebug() << "loadSamples";
+void Dialog::loadSamples(QVector<double> samples) {
+    //QVector<double> samples = spectrum;
+    int increment = 1;
+    int min = -70;
+    int max = 0;
+    QString bla;
+    for(int i=0; i<samples.size(); i++) {
+        bla = bla + QString::number(samples[i],'f',2) + "_";
+    }
+    ui->label_2->setText(bla);
+    //increment = samples.size()/NUM_BANDS;
+    ui->progressBar->setMinimum(min);
+    ui->progressBar_2->setMinimum(min);
+    ui->progressBar_3->setMinimum(min);
+    ui->progressBar_4->setMinimum(min);
+    ui->progressBar_5->setMinimum(min);
+    ui->progressBar_6->setMinimum(min);
+    ui->progressBar_7->setMinimum(min);
+    ui->progressBar_8->setMinimum(min);
+    ui->progressBar_9->setMinimum(min);
+
+    ui->progressBar->setMaximum(max);
+    ui->progressBar_2->setMaximum(max);
+    ui->progressBar_3->setMaximum(max);
+    ui->progressBar_4->setMaximum(max);
+    ui->progressBar_5->setMaximum(max);
+    ui->progressBar_6->setMaximum(max);
+    ui->progressBar_7->setMaximum(max);
+    ui->progressBar_8->setMaximum(max);
+    ui->progressBar_9->setMaximum(max);
+
+    ui->progressBar->setValue(samples.at(0*increment));
+    ui->progressBar_2->setValue(samples.at(1*increment));
+    ui->progressBar_3->setValue(samples.at(2*increment));
+    ui->progressBar_4->setValue(samples.at(3*increment));
+    ui->progressBar_5->setValue(samples.at(4*increment));
+    ui->progressBar_6->setValue(samples.at(5*increment));
+    ui->progressBar_7->setValue(samples.at(6*increment));
+    ui->progressBar_8->setValue(samples.at(7*increment));
+    ui->progressBar_9->setValue(samples.at(8*increment));
+    //qDebug() << "Max: " + QString::number(max_val) << "Min: " + QString::number(min_val);
 }
 
 void Dialog::loadLevels(double left, double right) {
-    qDebug() << "loadLevels";
+    //qDebug() << "left" + QString::number(left) << "right:" + QString::number(right);
 }

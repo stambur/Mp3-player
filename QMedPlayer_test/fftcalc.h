@@ -12,7 +12,8 @@
 
 // the size of fft array that is dispatched to
 // mainwindow
-#define SPECSIZE 512
+#define SPECSIZE 512 //bilo 512
+#define OCTAVES 1
 
 class BufferProcessor: public QObject
 {

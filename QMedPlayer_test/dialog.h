@@ -2,6 +2,7 @@
 #define DIALOG_H
 
 #include <QDialog>
+#include <QtWidgets>
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
 #include <QDir>
@@ -76,8 +77,10 @@ private:
     uchar lcdMode;
 
     double levelLeft, levelRight;
+    int barsCount;
+    int octaves;
     QVector<double> sample;
-    //QVector<double> spectrum;
+    QVector<QProgressBar*> arr;
     QAudioProbe *probe;
     FFTCalc *calculator;
 };

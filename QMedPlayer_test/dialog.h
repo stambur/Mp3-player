@@ -61,7 +61,7 @@ public slots:
     void onMetaDataChanged();
     void onHwBtnClicked(int);
     void lcdScroll();
-    void mySlot();
+    void mySlot(int);
 
     void processBuffer(QAudioBuffer);
     void spectrumAvailable(QVector<double>);
@@ -75,6 +75,7 @@ private:
     QString currentSong;
     int scrollCounter;
     uchar lcdMode;
+    int previousIndex;
 
     double levelLeft, levelRight;
     int barsCount;

@@ -1,7 +1,7 @@
 #include "dialog.h"
 #include <QApplication>
 
-#define DEBOUNCE_TIME 50
+#define DEBOUNCE_TIME 40
 
 void btn_int1(void);
 void btn_int2(void);

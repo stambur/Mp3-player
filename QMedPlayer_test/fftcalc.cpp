@@ -88,25 +88,25 @@ BufferProcessor::BufferProcessor(QObject *parent){
 	logscale.resize(SPECSIZE/2+1);
 
 	// by default, spectrum is log scaled (compressed)
-	compressed = false;
+    //compressed = false;
 
 	// window function (HANN)
 	for(int i=0; i<SPECSIZE;i++){
-        window[i] = 0.5 * (1 - cos((2*PI*i)/(SPECSIZE))); //HANN
+        window[i] = 0.5 * (1 - cos((2*PI*i)/(SPECSIZE-1))); //HANN
 //        window[i] = 1 - 1.93 * cos((2*PI*i)/(SPECSIZE-1)) + 1.29 * cos((4*PI*i)/(SPECSIZE-1)) -
 //                0.388 * cos((6*PI*i)/(SPECSIZE-1)) + 0.028 * cos((8*PI*i)/(SPECSIZE-1)); //FLAT TOP
 	}
 
 	// the log scale
-	for(int i=0; i<=SPECSIZE/2; i++){
-		logscale[i] = powf (SPECSIZE/2, (float) 2*i / SPECSIZE) - 0.5f;
-	}
+//	for(int i=0; i<=SPECSIZE/2; i++){
+//		logscale[i] = powf (SPECSIZE/2, (float) 2*i / SPECSIZE) - 0.5f;
+//	}
 
 	// nothing is running yet
 	running = false;
 
 	// process buffer each 100ms (initially, of course)
-	timer->start(100);
+    //timer->start(100);
 }
 
 BufferProcessor::~BufferProcessor(){
@@ -120,7 +120,7 @@ void BufferProcessor::processBuffer(QVector<double> _array, int duration, int oc
     //qDebug() << "Velicina bafera: " << _array.size();
 	if(array.size() != _array.size()){
         if(_array.size() >= SPECSIZE) {
-            //array is splitted into a set of small chuncks
+            //array is splitted into a set of small chunks
             chunks = _array.size()/SPECSIZE;
 
             // resize the array to the new array size
@@ -136,6 +136,10 @@ void BufferProcessor::processBuffer(QVector<double> _array, int duration, int oc
             }
         }
 	}
+    else {
+        chunks = _array.size()/SPECSIZE;
+        array = _array;
+    }
 	// interval of notification depends on the duration of the sample
 	interval = duration/chunks;
 
@@ -187,103 +191,72 @@ void BufferProcessor::run(){
 		//    amplitude = qMin(qreal(1.0), amplitude);
 		//    complexFrame[i] = amplitude;
 		amplitude = 2*std::abs(complexFrame[i])/SPECSIZE;
+        //qDebug() << "Sample " << i << " after fft: "<< amplitude;
 		complexFrame[i] = amplitude;
 	}
 
 	// audio spectrum is usually compressed for better displaying
-	if(compressed){
-		for (int i = 0; i <SPECSIZE/2; i ++){
-			/* sum up values in freq array between logscale[i] and logscale[i + 1],
-			   including fractional parts */
-			int a = ceilf (logscale[i]);
-			int b = floorf (logscale[i+1]);
-			float sum = 0;
 
-			if (b < a)
-				sum += complexFrame[b].real()*(logscale[i+1]-logscale[i]);
-			else{
-				if (a > 0)
-					sum += complexFrame[a-1].real()*(a-logscale[i]);
-				for (; a < b; a++)
-					sum += complexFrame[a].real();
-				if (b < SPECSIZE/2)
-					sum += complexFrame[b].real()*(logscale[i+1] - b);
-			}
+    // if not compressed, just copy the real part clamped between 0 and 1
+    //    for(int i=0; i<SPECSIZE/2; i++){
+    //      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
+    //
+    spectrum.resize(50);
+    //ekvidistantno od 0 do 22050 Hz, dakle 22050/256
+    double frequencies[SPECSIZE/2];
+    double resolution = 22050/(SPECSIZE/2);
+    double sum = 0;
+    int cnt = 0;
+    int i = 0;
+    double central = 15.625;
+    double lower,upper;
+    //static double max = 300;
+    for(int i=0; i<SPECSIZE/2; i++) {
+        sum = i*resolution;
+        frequencies[i] = sum;
+        //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum);
+    }
 
-			/* fudge factor to make the graph have the same overall height as a
-			   12-band one no matter how many bands there are */
-			sum *= (float) SPECSIZE/24;
+    upper = central*powf(2,(float)1/(2*octaves));
+    lower = central/powf(2,(float)1/(2*octaves));
 
-			/* convert to dB */
-			float val = 20*log10f (sum);
+    //qDebug() << lower;
+    //qDebug() << upper;
 
-			/* scale (-DB_RANGE, 0.0) to (0.0, 1.0) */
-			val = 1 + val / 40;
-			val *= 100;
-			spectrum[i] = CLAMP (val, 0, 100);
-		}
-	}
-	else{
-		// if not compressed, just copy the real part clamped between 0 and 1
-		//    for(int i=0; i<SPECSIZE/2; i++){
-		//      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
-		//
-		spectrum.resize(50);
-		//ekvidistantno od 0 do 22050 Hz, dakle 22050/256
-		double frequencies[SPECSIZE/2];
-		double resolution = 22050/(SPECSIZE/2);
-		double sum = 0;
-		int cnt = 0;
-		int i = 0;
-		double central = 15.625;
-		double lower,upper;
-		//static double max = 300;
-		for(int i=0; i<SPECSIZE/2; i++) {
-			sum = i*resolution;
-			frequencies[i] = sum;
-            //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum);
-		}
+    while(upper < frequencies[1]) {
+        central = central*powf(2,(float)1/octaves);
+        upper = central*powf(2,(float)1/(2*octaves));
+        lower = central/powf(2,(float)1/(2*octaves));
+    }
 
-		upper = central*powf(2,(float)1/(2*octaves));
-		lower = central/powf(2,(float)1/(2*octaves));
+    //for(int i=8; i>=0; i--) {
+    while(lower < 20000) {
+        sum = 0;
+        cnt = 0;
+        //qDebug() << "Lower: " << QString::number(lower) << " and upper: " << QString::number(upper);
+        for(int j=0; j<SPECSIZE/2; j++) {
+            if((frequencies[j] >= lower) && (frequencies[j] <= upper)) {
+//                    qDebug() << "Sample " << QString::number(complexFrame[j].real()) << "is between " <<
+//                        QString::number(lower) << " and " << QString::number(upper);
+                sum += complexFrame[j].real();
+                cnt++;
+            }
+        }
+        sum /= cnt;
+        //qDebug() << "Central: " << QString::number(central) << "Lower: " << QString::number(lower);
+        central = central*powf(2,(float)1/octaves);
+        upper = central*powf(2,(float)1/(2*octaves));
+        lower = central/powf(2,(float)1/(2*octaves));
 
-		//qDebug() << lower;
-		//qDebug() << upper;
+        spectrum[i] = 10*log10f(sum);
 
-		while(upper < frequencies[1]) {
-			central = central*powf(2,(float)1/octaves);
-			upper = central*powf(2,(float)1/(2*octaves));
-			lower = central/powf(2,(float)1/(2*octaves));
-		}
-
-		//for(int i=8; i>=0; i--) {
-		while(lower < 20000) {
-			sum = 0;
-			cnt = 0;
-            //qDebug() << "Lower: " << QString::number(lower) << " and upper: " << QString::number(upper);
-			for(int j=0; j<SPECSIZE/2; j++) {
-				if((frequencies[j] >= lower) && (frequencies[j] <= upper)) {
-//					qDebug() << "Sample " << QString::number(complexFrame[j].real()) << "is between " <<
-//						QString::number(lower) << " and " << QString::number(upper);
-					sum += complexFrame[j].real();
-					cnt++;
-				}
-			}
-			sum /= cnt;       
-			//qDebug() << "Central: " << QString::number(central) << "Lower: " << QString::number(lower);
-			central = central*powf(2,(float)1/octaves);
-			upper = central*powf(2,(float)1/(2*octaves));
-			lower = central/powf(2,(float)1/(2*octaves));
-
-			spectrum[i] = 10*log10f(sum);
-
-            //qDebug() << "Sample " << QString::number(i) << " in db: " << QString::number(spectrum[i]);
-			i++;
-		}
-		spectrum.resize(i);
+        //qDebug() << "Sample " << QString::number(i) << " in db: " << QString::number(spectrum[i]);
+        i++;
+    }
+    spectrum.resize(i);
 		//qDebug() << "Max = " << QString::number(max);
 
-	}
+
 	// emit the spectrum
 	emit calculatedSpectrum(spectrum);
 

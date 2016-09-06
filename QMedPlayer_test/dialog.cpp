@@ -22,7 +22,8 @@ Dialog::Dialog(QWidget *parent) :
 	lcdCharDef(lcd_h, 1, pse);
 
 	scrollCounter = 0;
-	lcdMode = 0;
+    lcdMode = 0;
+    previousIndex = 0;
 
 	sample.resize(SPECSIZE);
     calculator = new FFTCalc(this);
@@ -86,19 +87,27 @@ Dialog::Dialog(QWidget *parent) :
 		//count++;
 
 	}
-	ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	ui->listWidget->setTextElideMode(Qt::ElideRight);
+    //ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->listWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->listWidget->setTextElideMode(Qt::ElideRight);
+    ui->listWidget->setAutoScroll(true);
+    ui->listWidget_2->setAutoScroll(true);
+    ui->listWidget->setCurrentRow(0);
+    ui->listWidget_2->setCurrentRow(0);
+    ui->listWidget_2->adjustSize();
+    connect(ui->listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(mySlot(int)));
+
 	ui->tableWidget->horizontalHeader()->setVisible(false);
 	ui->tableWidget->setShowGrid(false);
-	connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
+    //connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
 	//ui->tableWidget->setRowHeight(0,5);
 	ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-	ui->tableWidget->setColumnWidth(1,50);
-	//ui->tableWidget->horizontalHeader()->
-	ui->tableWidget->adjustSize();
+    ui->tableWidget->setColumnWidth(1,50);
+    ui->tableWidget->adjustSize();
 
 	myPlaylist->addMedia(content);
-	myPlayer->setPlaylist(myPlaylist);
+    myPlayer->setPlaylist(myPlaylist);
+    myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
 	//connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
 	connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
 	//connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
@@ -125,8 +134,9 @@ Dialog::~Dialog()
 	delete ui;
 }
 
-void Dialog::mySlot() {
-	//qDebug() << "Usao u slot";
+void Dialog::mySlot(int index) {
+    //qDebug() << "Usao u slot, red " << bla;
+    ui->listWidget_2->setCurrentRow(index);
 }
 
 void Dialog::onMetaDataChanged() {
@@ -144,21 +154,20 @@ void Dialog::onPositionChanged(qint64 pos) {
 }
 
 void Dialog::onSongChanged(QMediaContent song) {
-	ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+    //ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+    //ui->listWidget_2->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
+    int current = myPlayer->playlist()->currentIndex();
+    //int previous = myPlayer->playlist()->previousIndex();
+    ui->listWidget->item(previousIndex)->setTextColor(Qt::black);
+    ui->listWidget_2->item(previousIndex)->setTextColor(Qt::black);
+    ui->listWidget->item(current)->setTextColor(Qt::blue);
+    ui->listWidget_2->item(current)->setTextColor(Qt::blue);
+    previousIndex = current;
 	//lcdClear(lcd_h);
 	//lcdPosition(lcd_h,0,0);
 	for(int i=0; i<barsCount; i++) {
 		arr[i]->setValue(arr[i]->minimum());
-	}
-	//    ui->progressBar->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_2->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_3->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_4->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_5->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_6->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_7->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_8->setValue(ui->progressBar->minimum());
-	//    ui->progressBar_9->setValue(ui->progressBar->minimum());
+    }
 	currentSong = song.canonicalUrl().fileName();
 }
 
@@ -166,15 +175,31 @@ void Dialog::handleKey(const QString& key) {
 	if(key == tr("KEY_PLAY")) {
 		switch(myPlayer->state()) {
 			case QMediaPlayer::StoppedState:
+                myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
+                ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
 				myPlayer->play();
 				lcdClear(lcd_h);
 				currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
 				break;
 			case QMediaPlayer::PausedState:
-				myPlayer->play();
+                if(myPlayer->playlist()->currentIndex() == ui->listWidget->currentRow()) {
+                    myPlayer->play();
+                }
+                else {
+                    myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
+                    ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+                    myPlayer->play();
+                }
 				break;
 			case QMediaPlayer::PlayingState:
-				myPlayer->pause();
+                if(myPlayer->playlist()->currentIndex() == ui->listWidget->currentRow()) {
+                    myPlayer->pause();
+                }
+                else {
+                    myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
+                    ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+                    myPlayer->play();
+                }
 				break;
 		}
 	}
@@ -184,7 +209,12 @@ void Dialog::handleKey(const QString& key) {
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
 		lcdClear(lcd_h);
-		myPlayer->playlist()->next();
+        if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
+            myPlayer->playlist()->setCurrentIndex(0);
+        }
+        else {
+            myPlayer->playlist()->next();
+        }
 		myPlayer->play();
 	}
 	else if(key == tr("KEY_PREVIOUS")) {
@@ -233,6 +263,34 @@ void Dialog::handleKey(const QString& key) {
 			octaves = 1;
 		}
 	}
+    else if(key == tr("KEY_5")) {
+        ui->listWidget->setStyleSheet(QString("selection-color: default"));
+        ui->listWidget->setCurrentRow((ui->listWidget->currentRow()+1)%ui->listWidget->count());
+        if(ui->listWidget->item(ui->listWidget->currentRow())->textColor() == Qt::blue) {
+            ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+        }
+        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
+    }
+    else if(key == tr("KEY_2")) {
+        ui->listWidget->setStyleSheet(QString("selection-color: default"));
+        if(ui->listWidget->currentRow()) {
+            ui->listWidget->setCurrentRow((ui->listWidget->currentRow()-1));
+        }
+        else {
+            ui->listWidget->setCurrentRow(ui->listWidget->count()-1);
+        }
+
+        if(ui->listWidget->selectedItems()[0]->textColor() == Qt::blue) {
+            ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+        }
+        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
+    }
+    else if(key == tr("KEY_3")) {
+        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
+    }
+    else if(key == tr("KEY_1")) {
+        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
+    }
 	else {
 		myPlayer->stop();
 		lcdClear(lcd_h);
@@ -292,8 +350,13 @@ void Dialog::onHwBtnClicked(int btn) {
 			}
 			else {
 				scrollCounter = 0;
-				lcdClear(lcd_h);
-				myPlayer->playlist()->next();
+                lcdClear(lcd_h);
+                if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
+                    myPlayer->playlist()->setCurrentIndex(0);
+                }
+                else {
+                    myPlayer->playlist()->next();
+                }
 				myPlayer->play();
 			}
 			break;
@@ -463,9 +526,15 @@ void Dialog::loadSamples(QVector<double> samples) {
 	//    for(int i=0; i<samples.size(); i++) {
 	//        bla = bla + QString::number(samples[i],'f',2) + "_";
 	//    }
+    int bla;
 
     for(int i=0; i<barsCount; i++) {
-		arr[i]->setValue(samples[i]);
+        if(samples[i] != samples[i]) {
+            //samples[i] = -34;
+        }
+
+        arr[i]->setValue(samples[i]);
+
 	}
 	//ui->label_2->setText(bla);
 	//increment = samples.size()/NUM_BANDS;

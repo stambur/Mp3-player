@@ -60,6 +60,7 @@ public slots:
     void onPositionChanged(qint64);
     void onMetaDataChanged();
     void onHwBtnClicked(int);
+    void onCurrentCellChanged(int,int,int,int);
     void lcdScroll();
     void mySlot(int);
 

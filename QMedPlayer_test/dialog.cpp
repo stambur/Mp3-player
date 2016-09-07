@@ -66,7 +66,7 @@ Dialog::Dialog(QWidget *parent) :
 	connect(myTimer, SIGNAL(timeout()), this, SLOT(lcdScroll()));
 	myTimer->start(1000);
 
-	ui->tableWidget->setColumnCount(2);
+    ui->tableWidget->setColumnCount(3);
 	int count = 0;
 
 	QString directory = QString::fromUtf8(usbPath());
@@ -77,33 +77,46 @@ Dialog::Dialog(QWidget *parent) :
 	{
 		content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
 		TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
-		ui->listWidget->addItem(f); //+ "\t" + QString::number(fil.audioProperties()->length() / 60) + ':' + QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
-		ui->listWidget_2->addItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
-				QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
+        //qDebug()<<QString::fromStdString(fil.tag()->title().to8Bit());
+        //qDebug()<<QString::fromStdString(fil.tag()->artist().to8Bit());
+//		ui->listWidget->addItem(f); //+ "\t" + QString::number(fil.audioProperties()->length() / 60) + ':' + QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
+//		ui->listWidget_2->addItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
+//				QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
 		ui->tableWidget->insertRow(count);
-		ui->tableWidget->setItem(count,0,new QTableWidgetItem(f));
-		ui->tableWidget->setItem(count++,1,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
+        ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
+        ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
+        ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
 					QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
-		//count++;
+        count++;
 
 	}
     //ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    ui->listWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    ui->listWidget->setTextElideMode(Qt::ElideRight);
-    ui->listWidget->setAutoScroll(true);
-    ui->listWidget_2->setAutoScroll(true);
-    ui->listWidget->setCurrentRow(0);
-    ui->listWidget_2->setCurrentRow(0);
-    ui->listWidget_2->adjustSize();
-    connect(ui->listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(mySlot(int)));
+//    ui->listWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+//    ui->listWidget->setTextElideMode(Qt::ElideRight);
+//    ui->listWidget->setAutoScroll(true);
+//    ui->listWidget_2->setAutoScroll(true);
+//    ui->listWidget->setCurrentRow(0);
+//    ui->listWidget_2->setCurrentRow(0);
+//    ui->listWidget->horizontalScrollBar()->setVisible(false);
+    //ui->listWidget_2->adjustSize();
+//    connect(ui->listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(mySlot(int)));
 
-	ui->tableWidget->horizontalHeader()->setVisible(false);
-	ui->tableWidget->setShowGrid(false);
+    //ui->tableWidget->horizontalHeader()->setVisible(false);
+    //ui->tableWidget->setShowGrid(false);
     //connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
 	//ui->tableWidget->setRowHeight(0,5);
-	ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    ui->tableWidget->setColumnWidth(1,50);
-    ui->tableWidget->adjustSize();
+    ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
+    //ui->tableWidget->horizontalHeader()->resizeSection(0,QHeaderView::ResizeToContents);
+    ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+    ui->tableWidget->horizontalHeader()->resizeSection(1,200);
+    ui->tableWidget->setCurrentCell(0,1);
+    ui->tableWidget->setAutoScroll(true);
+    //ui->tableWidget->setColumnWidth(0,10);
+    //ui->tableWidget->verticalHeader()->setHighlightSections(true);
+    //ui->tableWidget->verticalHeader()->setFrameShape(QFrame::NoFrame);
+    //ui->tableWidget->verticalHeader()->clearMask();
+    //ui->tableWidget->adjustSize();
+    connect(ui->tableWidget,SIGNAL(currentCellChanged(int,int,int,int)),this,SLOT(onCurrentCellChanged(int,int,int,int)));
 
 	myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
@@ -136,12 +149,25 @@ Dialog::~Dialog()
 
 void Dialog::mySlot(int index) {
     //qDebug() << "Usao u slot, red " << bla;
-    ui->listWidget_2->setCurrentRow(index);
+    //ui->listWidget_2->setCurrentRow(index);
+}
+
+void Dialog::onCurrentCellChanged(int currRow, int currCol, int prevRow, int prevCol) {
+    if(ui->tableWidget->item(currRow,currCol)->textColor() == Qt::blue) {
+        ui->tableWidget->setStyleSheet("selection-color: turquoise");
+    }
+    else if(ui->tableWidget->item(prevRow,prevCol)->textColor() == Qt::blue) {
+        ui->tableWidget->setStyleSheet("selection-color: white");
+    }
 }
 
 void Dialog::onMetaDataChanged() {
+    //TagLib::FileRef file((dir.path()+ '/' + f).toLatin1().data());
+    //qDebug()<<myPlayer->currentMedia().canonicalUrl().path();
+    TagLib::FileRef file(myPlayer->currentMedia().canonicalUrl().path().toLatin1().data());
 	if(myPlayer->isMetaDataAvailable()) {
-		ui->label->setText(myPlayer->metaData("AudioBitRate").toString());
+        //ui->label->setText(myPlayer->metaData("SampleRate").toString());
+        ui->label->setText(QString::number(file.audioProperties()->sampleRate()));
 	}
 }
 
@@ -158,10 +184,14 @@ void Dialog::onSongChanged(QMediaContent song) {
     //ui->listWidget_2->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
     int current = myPlayer->playlist()->currentIndex();
     //int previous = myPlayer->playlist()->previousIndex();
-    ui->listWidget->item(previousIndex)->setTextColor(Qt::black);
-    ui->listWidget_2->item(previousIndex)->setTextColor(Qt::black);
-    ui->listWidget->item(current)->setTextColor(Qt::blue);
-    ui->listWidget_2->item(current)->setTextColor(Qt::blue);
+    for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+        ui->tableWidget->item(previousIndex,i)->setTextColor(Qt::black);
+        ui->tableWidget->item(current,i)->setTextColor(Qt::blue);
+    }
+//    ui->listWidget->item(previousIndex)->setTextColor(Qt::black);
+//    ui->listWidget_2->item(previousIndex)->setTextColor(Qt::black);
+//    ui->listWidget->item(current)->setTextColor(Qt::blue);
+//    ui->listWidget_2->item(current)->setTextColor(Qt::blue);
     previousIndex = current;
 	//lcdClear(lcd_h);
 	//lcdPosition(lcd_h,0,0);
@@ -175,29 +205,35 @@ void Dialog::handleKey(const QString& key) {
 	if(key == tr("KEY_PLAY")) {
 		switch(myPlayer->state()) {
 			case QMediaPlayer::StoppedState:
-                myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
-                ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+                myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+//                ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
+//                ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
+                ui->tableWidget->setStyleSheet("selection-color: turquoise");
 				myPlayer->play();
 				lcdClear(lcd_h);
 				currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
 				break;
 			case QMediaPlayer::PausedState:
-                if(myPlayer->playlist()->currentIndex() == ui->listWidget->currentRow()) {
+                if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
                     myPlayer->play();
                 }
                 else {
-                    myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
-                    ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+                    myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+//                    ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
+//                    ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
+                    ui->tableWidget->setStyleSheet("selection-color: turquoise");
                     myPlayer->play();
                 }
 				break;
 			case QMediaPlayer::PlayingState:
-                if(myPlayer->playlist()->currentIndex() == ui->listWidget->currentRow()) {
+                if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
                     myPlayer->pause();
                 }
                 else {
-                    myPlayer->playlist()->setCurrentIndex(ui->listWidget->currentRow());
-                    ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
+                    myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+//                    ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
+//                    ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
+                    ui->tableWidget->setStyleSheet("selection-color: turquoise");
                     myPlayer->play();
                 }
 				break;
@@ -264,32 +300,44 @@ void Dialog::handleKey(const QString& key) {
 		}
 	}
     else if(key == tr("KEY_5")) {
-        ui->listWidget->setStyleSheet(QString("selection-color: default"));
-        ui->listWidget->setCurrentRow((ui->listWidget->currentRow()+1)%ui->listWidget->count());
-        if(ui->listWidget->item(ui->listWidget->currentRow())->textColor() == Qt::blue) {
-            ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
-        }
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
+//        ui->listWidget->setStyleSheet(QString("selection-color: white"));
+//        ui->listWidget_2->setStyleSheet(QString("selection-color: white"));
+//        ui->listWidget->setCurrentRow((ui->listWidget->currentRow()+1)%ui->listWidget->count());
+        ui->tableWidget->setCurrentCell((ui->tableWidget->currentRow()+1)%ui->tableWidget->rowCount(),1);
+//        if(ui->listWidget->item(ui->listWidget->currentRow())->textColor() == Qt::blue) {
+//            ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
+//            ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
+//        }
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
     }
     else if(key == tr("KEY_2")) {
-        ui->listWidget->setStyleSheet(QString("selection-color: default"));
-        if(ui->listWidget->currentRow()) {
-            ui->listWidget->setCurrentRow((ui->listWidget->currentRow()-1));
+//        ui->listWidget->setStyleSheet(QString("selection-color: white"));
+//        ui->listWidget_2->setStyleSheet(QString("selection-color: white"));
+//        if(ui->listWidget->currentRow()) {
+//            ui->listWidget->setCurrentRow((ui->listWidget->currentRow()-1));
+//        }
+//        else {
+//            ui->listWidget->setCurrentRow(ui->listWidget->count()-1);
+//        }
+
+        if(ui->tableWidget->currentRow()) {
+            ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1,1);
         }
         else {
-            ui->listWidget->setCurrentRow(ui->listWidget->count()-1);
+            ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
         }
 
-        if(ui->listWidget->selectedItems()[0]->textColor() == Qt::blue) {
-            ui->listWidget->setStyleSheet(QString("selection-color: magenta"));
-        }
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
+//        if(ui->listWidget->selectedItems()[0]->textColor() == Qt::blue) {
+//            ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
+//            ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
+//        }
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
     }
     else if(key == tr("KEY_3")) {
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
     }
     else if(key == tr("KEY_1")) {
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
     }
 	else {
 		myPlayer->stop();

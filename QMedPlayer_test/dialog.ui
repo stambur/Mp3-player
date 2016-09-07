@@ -30,10 +30,13 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>340</y>
-     <width>141</width>
+     <y>20</y>
+     <width>291</width>
      <height>181</height>
     </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
    </property>
    <property name="frameShape">
     <enum>QFrame::StyledPanel</enum>
@@ -60,7 +63,10 @@
     </size>
    </property>
    <property name="showGrid">
-    <bool>true</bool>
+    <bool>false</bool>
+   </property>
+   <property name="gridStyle">
+    <enum>Qt::NoPen</enum>
    </property>
    <property name="wordWrap">
     <bool>false</bool>
@@ -69,16 +75,19 @@
     <bool>false</bool>
    </property>
    <property name="rowCount">
-    <number>1</number>
+    <number>0</number>
    </property>
    <property name="columnCount">
-    <number>2</number>
+    <number>0</number>
    </property>
    <attribute name="horizontalHeaderVisible">
     <bool>false</bool>
    </attribute>
    <attribute name="horizontalHeaderDefaultSectionSize">
     <number>200</number>
+   </attribute>
+   <attribute name="verticalHeaderVisible">
+    <bool>false</bool>
    </attribute>
    <attribute name="verticalHeaderCascadingSectionResizes">
     <bool>false</bool>
@@ -89,9 +98,6 @@
    <attribute name="verticalHeaderHighlightSections">
     <bool>true</bool>
    </attribute>
-   <row/>
-   <column/>
-   <column/>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
@@ -166,38 +172,6 @@
    </property>
    <property name="value">
     <number>24</number>
-   </property>
-  </widget>
-  <widget class="QListWidget" name="listWidget">
-   <property name="geometry">
-    <rect>
-     <x>1</x>
-     <y>1</y>
-     <width>256</width>
-     <height>192</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::NoFrame</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Plain</enum>
-   </property>
-  </widget>
-  <widget class="QListWidget" name="listWidget_2">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>1</y>
-     <width>256</width>
-     <height>192</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::NoFrame</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Plain</enum>
    </property>
   </widget>
  </widget>

@@ -12,7 +12,7 @@
 
 // the size of fft array that is dispatched to
 // mainwindow
-#define SPECSIZE 1024 //bilo 2048
+#define SPECSIZE 2048 //bilo 2048
 
 class BufferProcessor: public QObject
 {

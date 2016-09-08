@@ -1,7 +1,7 @@
 #include "dialog.h"
 #include <QApplication>
 
-#define DEBOUNCE_TIME 40
+#define DEBOUNCE_TIME 70
 
 void btn_int1(void);
 void btn_int2(void);
@@ -16,6 +16,7 @@ Dialog *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setStyleSheet(QObject::tr("QTableWidget[myProperty=bla]{background:skyblue} QTableWidget[myProperty=kek]{background:darkblue}"));
     int retVal;
 
     QSplashScreen *splash = new QSplashScreen;

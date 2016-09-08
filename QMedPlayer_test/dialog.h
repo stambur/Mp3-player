@@ -50,7 +50,6 @@ public:
 signals:
     void hw_btn_clicked(int);
 
-    //int spectrumChanged(QVector<double> &sample);
     int levels(double left, double right);
 
 public slots:
@@ -65,9 +64,8 @@ public slots:
     void mySlot(int);
 
     void processBuffer(QAudioBuffer);
-    void spectrumAvailable(QVector<double>);
     void loadSamples(QVector<double>);
-    void loadLevels(double,double);
+//    void loadLevels(double,double);
 
 private:
     Ui::Dialog *ui;

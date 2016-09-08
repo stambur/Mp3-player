@@ -1,8 +1,7 @@
 #include "dialog.h"
 #include "ui_dialog.h"
 
-#define NUM_BANDS 8
-#define MINBAR -70
+#define MINBAR -60
 #define MAXBAR 0
 
 Dialog::Dialog(QWidget *parent) :
@@ -30,8 +29,6 @@ Dialog::Dialog(QWidget *parent) :
     probe = new QAudioProbe(this);
 	qRegisterMetaType< QVector<double> >("QVector<double>");
 
-	//QProgressBar *arr[9];
-	//QVector<QProgressBar*> arr;
 	barsCount = 9;
 	octaves = 1;
 	arr.resize(barsCount);
@@ -43,16 +40,13 @@ Dialog::Dialog(QWidget *parent) :
 		arr[i]->move(300+10*i,300);
         arr[i]->setMinimum(MINBAR);
         arr[i]->setMaximum(MAXBAR);
+        arr[i]->setValue(MINBAR);
 	}
 
 	connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),
-			this, SLOT(processBuffer(QAudioBuffer)));
-	//    connect(this,  SIGNAL(spectrumChanged(QVector<double>&)),
-	//            this,SLOT(loadSamples(QVector<double>&)));
-	connect(this,  SIGNAL(levels(double,double)),
-			this,SLOT(loadLevels(double,double)));
-	//    connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
-	//            this, SLOT(spectrumAvailable(QVector<double>)));
+            this, SLOT(processBuffer(QAudioBuffer)));
+//	connect(this,  SIGNAL(levels(double,double)),
+//			this,SLOT(loadLevels(double,double)));
 	connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
 			this, SLOT(loadSamples(QVector<double>)));
 
@@ -79,9 +73,6 @@ Dialog::Dialog(QWidget *parent) :
 		TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
         //qDebug()<<QString::fromStdString(fil.tag()->title().to8Bit());
         //qDebug()<<QString::fromStdString(fil.tag()->artist().to8Bit());
-//		ui->listWidget->addItem(f); //+ "\t" + QString::number(fil.audioProperties()->length() / 60) + ':' + QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
-//		ui->listWidget_2->addItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
-//				QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0'));
 		ui->tableWidget->insertRow(count);
         ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
         ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
@@ -90,16 +81,6 @@ Dialog::Dialog(QWidget *parent) :
         count++;
 
 	}
-    //ui->listWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-//    ui->listWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-//    ui->listWidget->setTextElideMode(Qt::ElideRight);
-//    ui->listWidget->setAutoScroll(true);
-//    ui->listWidget_2->setAutoScroll(true);
-//    ui->listWidget->setCurrentRow(0);
-//    ui->listWidget_2->setCurrentRow(0);
-//    ui->listWidget->horizontalScrollBar()->setVisible(false);
-    //ui->listWidget_2->adjustSize();
-//    connect(ui->listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(mySlot(int)));
 
     //ui->tableWidget->horizontalHeader()->setVisible(false);
     //ui->tableWidget->setShowGrid(false);
@@ -107,14 +88,19 @@ Dialog::Dialog(QWidget *parent) :
 	//ui->tableWidget->setRowHeight(0,5);
     ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
     //ui->tableWidget->horizontalHeader()->resizeSection(0,QHeaderView::ResizeToContents);
-    ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    ui->tableWidget->horizontalHeader()->resizeSection(1,200);
+    //ui->tableWidget->horizontalHeader()->resizeSection(1,200);
     ui->tableWidget->setCurrentCell(0,1);
     ui->tableWidget->setAutoScroll(true);
+//    QPalette bla = ui->tableWidget->palette();
+//    bla.setColor(QPalette::Base,Qt::cyan);
+//    ui->tableWidget->setPalette(bla);
+    //ui->tableWidget->setStyleSheet("background-color:skyblue");
+    ui->tableWidget->setProperty("myProperty","bla");
+    //ui->tableWidget->setStyleSheet("QTableWidget[myProperty=bla]{background:skyblue}");
+    ui->tableWidget->setColumnWidth(0,50);
+    ui->tableWidget->setColumnWidth(2,60);
+    ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::Fixed);
     //ui->tableWidget->setColumnWidth(0,10);
-    //ui->tableWidget->verticalHeader()->setHighlightSections(true);
-    //ui->tableWidget->verticalHeader()->setFrameShape(QFrame::NoFrame);
-    //ui->tableWidget->verticalHeader()->clearMask();
     //ui->tableWidget->adjustSize();
     connect(ui->tableWidget,SIGNAL(currentCellChanged(int,int,int,int)),this,SLOT(onCurrentCellChanged(int,int,int,int)));
 
@@ -133,10 +119,7 @@ Dialog::Dialog(QWidget *parent) :
 	lcdPrintf(lcd_h,"Play stopped");
 	for(int i=0; i<18; i++) {
 		lcdPutchar(lcd_h,0xFF);
-	}
-
-	//ui->listWidget->setCurrentRow(0);
-	//bla->addWidget(ui->horizontalLayout);
+    }
 
     probe->setSource(myPlayer);
 }
@@ -148,22 +131,18 @@ Dialog::~Dialog()
 }
 
 void Dialog::mySlot(int index) {
-    //qDebug() << "Usao u slot, red " << bla;
-    //ui->listWidget_2->setCurrentRow(index);
 }
 
 void Dialog::onCurrentCellChanged(int currRow, int currCol, int prevRow, int prevCol) {
-    if(ui->tableWidget->item(currRow,currCol)->textColor() == Qt::blue) {
-        ui->tableWidget->setStyleSheet("selection-color: turquoise");
-    }
-    else if(ui->tableWidget->item(prevRow,prevCol)->textColor() == Qt::blue) {
-        ui->tableWidget->setStyleSheet("selection-color: white");
-    }
+//    if(ui->tableWidget->item(currRow,currCol)->textColor() == Qt::blue) {
+//        ui->tableWidget->setStyleSheet("selection-color: turquoise");
+//    }
+//    else if(ui->tableWidget->item(prevRow,prevCol)->textColor() == Qt::blue) {
+//        ui->tableWidget->setStyleSheet("selection-color: white");
+//    }
 }
 
 void Dialog::onMetaDataChanged() {
-    //TagLib::FileRef file((dir.path()+ '/' + f).toLatin1().data());
-    //qDebug()<<myPlayer->currentMedia().canonicalUrl().path();
     TagLib::FileRef file(myPlayer->currentMedia().canonicalUrl().path().toLatin1().data());
 	if(myPlayer->isMetaDataAvailable()) {
         //ui->label->setText(myPlayer->metaData("SampleRate").toString());
@@ -180,18 +159,27 @@ void Dialog::onPositionChanged(qint64 pos) {
 }
 
 void Dialog::onSongChanged(QMediaContent song) {
-    //ui->listWidget->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
-    //ui->listWidget_2->setCurrentRow(myPlayer->playlist()->currentIndex() != -1 ? myPlayer->playlist()->currentIndex():0);
     int current = myPlayer->playlist()->currentIndex();
-    //int previous = myPlayer->playlist()->previousIndex();
+    QFont f = ui->tableWidget->item(current,1)->font();
     for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-        ui->tableWidget->item(previousIndex,i)->setTextColor(Qt::black);
-        ui->tableWidget->item(current,i)->setTextColor(Qt::blue);
+//        ui->tableWidget->item(previousIndex,i)->setTextColor(Qt::black);
+//        ui->tableWidget->item(current,i)->setTextColor(Qt::blue);
+        //ui->tableWidget->item(current,i)->setFont(QFont("Courier"));
+        //QFont f = ui->tableWidget->item(current,i)->font();
+        ui->tableWidget->item(previousIndex,i)->setFont(f);
+        f.setItalic(true);
+        f.setBold(true);
+        ui->tableWidget->item(current,i)->setFont(f);
+        f.setItalic(false);
+        f.setBold(false);
     }
-//    ui->listWidget->item(previousIndex)->setTextColor(Qt::black);
-//    ui->listWidget_2->item(previousIndex)->setTextColor(Qt::black);
-//    ui->listWidget->item(current)->setTextColor(Qt::blue);
-//    ui->listWidget_2->item(current)->setTextColor(Qt::blue);
+
+//    if(current == ui->tableWidget->currentRow()) {
+//        ui->tableWidget->setStyleSheet("selection-color: turquoise");
+//    }
+//    else if(previousIndex == ui->tableWidget->currentRow()) {
+//        ui->tableWidget->setStyleSheet("selection-color: white");
+//    }
     previousIndex = current;
 	//lcdClear(lcd_h);
 	//lcdPosition(lcd_h,0,0);
@@ -202,13 +190,20 @@ void Dialog::onSongChanged(QMediaContent song) {
 }
 
 void Dialog::handleKey(const QString& key) {
+    QFont f;
 	if(key == tr("KEY_PLAY")) {
 		switch(myPlayer->state()) {
 			case QMediaPlayer::StoppedState:
+                if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
+                    f = ui->tableWidget->currentItem()->font();
+                    f.setItalic(true);
+                    f.setBold(true);
+                    for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+                        ui->tableWidget->item(ui->tableWidget->currentRow(),i)->setFont(f);
+                    }
+                }
                 myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
-//                ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
-//                ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
-                ui->tableWidget->setStyleSheet("selection-color: turquoise");
+                //ui->tableWidget->setStyleSheet("selection-color: turquoise");
 				myPlayer->play();
 				lcdClear(lcd_h);
 				currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
@@ -219,9 +214,7 @@ void Dialog::handleKey(const QString& key) {
                 }
                 else {
                     myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
-//                    ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
-//                    ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
-                    ui->tableWidget->setStyleSheet("selection-color: turquoise");
+                    //ui->tableWidget->setStyleSheet("selection-color: turquoise");
                     myPlayer->play();
                 }
 				break;
@@ -231,9 +224,7 @@ void Dialog::handleKey(const QString& key) {
                 }
                 else {
                     myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
-//                    ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
-//                    ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
-                    ui->tableWidget->setStyleSheet("selection-color: turquoise");
+                    //ui->tableWidget->setStyleSheet("selection-color: turquoise");
                     myPlayer->play();
                 }
 				break;
@@ -241,6 +232,15 @@ void Dialog::handleKey(const QString& key) {
 	}
 	else if(key == tr("KEY_CH")) {
 		myPlayer->stop();
+        f = ui->tableWidget->currentItem()->font();
+        f.setItalic(false);
+        f.setBold(false);
+        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+            ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setValue(MINBAR);
+        }
 	}
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
@@ -300,44 +300,25 @@ void Dialog::handleKey(const QString& key) {
 		}
 	}
     else if(key == tr("KEY_5")) {
-//        ui->listWidget->setStyleSheet(QString("selection-color: white"));
-//        ui->listWidget_2->setStyleSheet(QString("selection-color: white"));
-//        ui->listWidget->setCurrentRow((ui->listWidget->currentRow()+1)%ui->listWidget->count());
         ui->tableWidget->setCurrentCell((ui->tableWidget->currentRow()+1)%ui->tableWidget->rowCount(),1);
-//        if(ui->listWidget->item(ui->listWidget->currentRow())->textColor() == Qt::blue) {
-//            ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
-//            ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
-//        }
-        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
     }
     else if(key == tr("KEY_2")) {
-//        ui->listWidget->setStyleSheet(QString("selection-color: white"));
-//        ui->listWidget_2->setStyleSheet(QString("selection-color: white"));
-//        if(ui->listWidget->currentRow()) {
-//            ui->listWidget->setCurrentRow((ui->listWidget->currentRow()-1));
-//        }
-//        else {
-//            ui->listWidget->setCurrentRow(ui->listWidget->count()-1);
-//        }
-
         if(ui->tableWidget->currentRow()) {
             ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1,1);
         }
         else {
             ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
         }
-
-//        if(ui->listWidget->selectedItems()[0]->textColor() == Qt::blue) {
-//            ui->listWidget->setStyleSheet(QString("selection-color: turquoise"));
-//            ui->listWidget_2->setStyleSheet(QString("selection-color: turquoise"));
-//        }
-        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->minimum());
     }
     else if(key == tr("KEY_3")) {
-        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
+        ui->tableWidget->setProperty("myProperty","kek");
+        ui->tableWidget->style()->unpolish(ui->tableWidget);
+        ui->tableWidget->style()->polish(ui->tableWidget);
     }
     else if(key == tr("KEY_1")) {
-        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
+        ui->tableWidget->setProperty("myProperty","bla");
+        ui->tableWidget->style()->unpolish(ui->tableWidget);
+        ui->tableWidget->style()->polish(ui->tableWidget);
     }
 	else {
 		myPlayer->stop();
@@ -487,8 +468,8 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 		// scale everything to [0,1]
 		for(int i=0; i<buffer.frameCount(); i++){
 			sample[i] = (data[i].left + data[i].right)/2/peakValue;
-			levelLeft+= abs(data[i].left)/peakValue;
-			levelRight+= abs(data[i].right)/peakValue;
+//			levelLeft+= abs(data[i].left)/peakValue;
+//			levelRight+= abs(data[i].right)/peakValue;
 		}
 	}
 
@@ -503,8 +484,8 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 			peakValue=UCHAR_MAX;
 		for(int i=0; i<buffer.frameCount(); i++){
 			sample[i] = (data[i].left + data[i].right)/2/peakValue;
-			levelLeft+= abs(data[i].left)/peakValue;
-			levelRight+= abs(data[i].right)/peakValue;
+//			levelLeft+= abs(data[i].left)/peakValue;
+//			levelRight+= abs(data[i].right)/peakValue;
 		}
 	}
 
@@ -536,14 +517,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 		calculator->calc(sample, duration, octaves);
 	}
 	// tells anyone interested about left and right mean levels
-	emit levels(levelLeft/buffer.frameCount(),levelRight/buffer.frameCount());
-}
-
-// what to do when fft spectrum is available
-void Dialog::spectrumAvailable(QVector<double> spectrum){
-	// just tell the spectrum
-	// the visualization widget will catch the signal...
-	// emit spectrumChanged(spectrum);
+//	emit levels(levelLeft/buffer.frameCount(),levelRight/buffer.frameCount());
 }
 
 void Dialog::loadSamples(QVector<double> samples) {
@@ -553,9 +527,9 @@ void Dialog::loadSamples(QVector<double> samples) {
 			arr[i]->deleteLater();
 		}
 
-		//qDebug() << "Obrisani barovi";
+        //qDebug() << "Obrisani barovi";
 		barsCount = samples.size();
-		//qDebug() << "Sada barova treba da ima: " << barsCount;
+        //qDebug() << "Sada barova treba da ima: " << barsCount;
 
 		arr.resize(barsCount);
 		for(int i=0; i<barsCount; i++) {
@@ -566,41 +540,32 @@ void Dialog::loadSamples(QVector<double> samples) {
 			arr[i]->move(300+10*i,300);
             arr[i]->setMinimum(MINBAR);
             arr[i]->setMaximum(MAXBAR);
+            arr[i]->setValue(MINBAR);
 			arr[i]->show();
 		}
-		//qDebug() << "Postavljeni novi barovi";
+        //qDebug() << "Postavljeni novi barovi";
     }
 	//QString bla;
 	//    for(int i=0; i<samples.size(); i++) {
 	//        bla = bla + QString::number(samples[i],'f',2) + "_";
 	//    }
-    int bla;
+    //int bla;
 
     for(int i=0; i<barsCount; i++) {
+        //budz
+        //qDebug() << "Prije ulaska u budz, octaves="<<octaves<<",barsCount="<<barsCount<<",samplesSize="<<samples.size();
         if(samples[i] != samples[i]) {
             //samples[i] = -34;
+            //qDebug() << "Usao u budz region, i="<<i;
+            int j = i+1;
+            while(samples[j] != samples[j]) {
+                //qDebug() << "Usao u while u budz regionu";
+                j++;
+                //qDebug() << "j = "<< j << " barsCount = " << barsCount;
+            }
+            samples[i] = (samples[i-1]+samples[j])/2;
         }
-
         arr[i]->setValue(samples[i]);
-
-	}
-	//ui->label_2->setText(bla);
-	//increment = samples.size()/NUM_BANDS;
-
-	//    ui->progressBar->setValue(samples.at(0*increment));
-	//    ui->progressBar_2->setValue(samples.at(1*increment));
-	//    ui->progressBar_3->setValue(samples.at(2*increment));
-	//    ui->progressBar_4->setValue(samples.at(3*increment));
-	//    ui->progressBar_5->setValue(samples.at(4*increment));
-	//    ui->progressBar_6->setValue(samples.at(5*increment));
-	//    ui->progressBar_7->setValue(samples.at(6*increment));
-	//    ui->progressBar_8->setValue(samples.at(7*increment));
-	//    ui->progressBar_9->setValue(samples.at(8*increment));
-	//qDebug() << "Max: " + QString::number(max_val) << "Min: " + QString::number(min_val);
+    }
 }
 
-void Dialog::loadLevels(double left, double right) {
-    //qDebug() << "left" + QString::number(left) << "right:" + QString::number(right);
-    ui->progressBar->setValue(left*100);
-    ui->progressBar_2->setValue(right*100);
-}

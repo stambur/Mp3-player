@@ -95,6 +95,7 @@ BufferProcessor::BufferProcessor(QObject *parent){
         window[i] = 0.5 * (1 - cos((2*PI*i)/(SPECSIZE-1))); //HANN
 //        window[i] = 1 - 1.93 * cos((2*PI*i)/(SPECSIZE-1)) + 1.29 * cos((4*PI*i)/(SPECSIZE-1)) -
 //                0.388 * cos((6*PI*i)/(SPECSIZE-1)) + 0.028 * cos((8*PI*i)/(SPECSIZE-1)); //FLAT TOP
+        //qDebug() << "Pendzer od"<<i<<"="<<window[i];
 	}
 
 	// the log scale
@@ -157,7 +158,7 @@ void BufferProcessor::processBuffer(QVector<double> _array, int duration, int oc
 
 	// redefines the timer interval
 	timer->start(interval);
-    //qDebug() << "Zavrsio procesiranje bafera";
+    //qDebug() << "Zavrsio procesiranje bafera, octave = "<<octaves;
 }
 
 void BufferProcessor::run(){
@@ -204,17 +205,19 @@ void BufferProcessor::run(){
     spectrum.resize(50);
     //ekvidistantno od 0 do 22050 Hz, dakle 22050/256
     double frequencies[SPECSIZE/2];
-    double resolution = 22050/(SPECSIZE/2);
+    double resolution = 22050/(double)(SPECSIZE/2);
     double sum = 0;
     int cnt = 0;
     int i = 0;
     double central = 15.625;
     double lower,upper;
     //static double max = 300;
+    //qDebug() << "Resolution ="<<resolution;
     for(int i=0; i<SPECSIZE/2; i++) {
         sum = i*resolution;
+        //qDebug() << "Sum of"<<i<<"is"<<sum;
         frequencies[i] = sum;
-        //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum);
+        //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum,'f',2);
     }
 
     upper = central*powf(2,(float)1/(2*octaves));
@@ -223,7 +226,7 @@ void BufferProcessor::run(){
     //qDebug() << lower;
     //qDebug() << upper;
 
-    while(upper < frequencies[1]) {
+    while((upper < frequencies[1]) || (upper<20)) {// || (upper<20)
         central = central*powf(2,(float)1/octaves);
         upper = central*powf(2,(float)1/(2*octaves));
         lower = central/powf(2,(float)1/(2*octaves));
@@ -236,7 +239,7 @@ void BufferProcessor::run(){
         //qDebug() << "Lower: " << QString::number(lower) << " and upper: " << QString::number(upper);
         for(int j=0; j<SPECSIZE/2; j++) {
             if((frequencies[j] >= lower) && (frequencies[j] <= upper)) {
-//                    qDebug() << "Sample " << QString::number(complexFrame[j].real()) << "is between " <<
+//                qDebug() << "Sample "<< j << "=" << QString::number(complexFrame[j].real()) << "is between " <<
 //                        QString::number(lower) << " and " << QString::number(upper);
                 sum += complexFrame[j].real();
                 cnt++;
@@ -260,6 +263,7 @@ void BufferProcessor::run(){
 	// emit the spectrum
 	emit calculatedSpectrum(spectrum);
 
+    //qDebug() << "Emitovao novi spektar, octaves = "<<octaves;
 	// count the pass
 	pass++;
 	}

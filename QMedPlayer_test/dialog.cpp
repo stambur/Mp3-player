@@ -57,7 +57,7 @@ Dialog::Dialog(QWidget *parent) :
 	connect(myLirc,SIGNAL(key_event(QString)),this,SLOT(handleKey(QString)));
 
 	QTimer *myTimer = new QTimer(this);
-	connect(myTimer, SIGNAL(timeout()), this, SLOT(lcdScroll()));
+    connect(myTimer, SIGNAL(timeout()), this, SLOT(onEverySecond()));
 	myTimer->start(1000);
 
     ui->tableWidget->setColumnCount(3);
@@ -65,10 +65,12 @@ Dialog::Dialog(QWidget *parent) :
 
 	QString directory = QString::fromUtf8(usbPath());
 	QDir dir(directory);
+    //QTime time(0,0);
 	QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
 	QList<QMediaContent> content;
 	for(const QString& f:files)
 	{
+        //time.setHMS(0,0,0);
 		content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
 		TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
         //qDebug()<<QString::fromStdString(fil.tag()->title().to8Bit());
@@ -77,11 +79,15 @@ Dialog::Dialog(QWidget *parent) :
         ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
         ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
         ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
-					QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
+                    QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
+        //ui->tableWidget->setItem(count,2,new QTableWidgetItem(time.addSecs(fil.audioProperties()->length()).toString(tr("mm:ss"))));
         count++;
 
 	}
 
+    ui->label->setText(tr("0:00"));
+    ui->label_2->setText(tr("0:00"));
+    ui->horizontalSlider_2->setValue(100);
     //ui->tableWidget->horizontalHeader()->setVisible(false);
     //ui->tableWidget->setShowGrid(false);
     //connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
@@ -97,19 +103,21 @@ Dialog::Dialog(QWidget *parent) :
     //ui->tableWidget->setStyleSheet("background-color:skyblue");
     ui->tableWidget->setProperty("myProperty","bla");
     //ui->tableWidget->setStyleSheet("QTableWidget[myProperty=bla]{background:skyblue}");
-    ui->tableWidget->setColumnWidth(0,50);
+    ui->tableWidget->setColumnWidth(0,30);
     ui->tableWidget->setColumnWidth(2,60);
     ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::Fixed);
     //ui->tableWidget->setColumnWidth(0,10);
     //ui->tableWidget->adjustSize();
     connect(ui->tableWidget,SIGNAL(currentCellChanged(int,int,int,int)),this,SLOT(onCurrentCellChanged(int,int,int,int)));
+    connect(myPlayer,SIGNAL(volumeChanged(int)),ui->horizontalSlider_2,SLOT(setValue(int)));
 
 	myPlaylist->addMedia(content);
     myPlayer->setPlaylist(myPlaylist);
     myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
-	//connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
+    myPlayer->playlist()->setCurrentIndex(0);
+    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
 	connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
-	//connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
+    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
 	connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 	connect(myPlayer,SIGNAL(metaDataChanged()),this,SLOT(onMetaDataChanged()));
 	lcdClear(lcd_h);
@@ -122,6 +130,8 @@ Dialog::Dialog(QWidget *parent) :
     }
 
     probe->setSource(myPlayer);
+    //emit myPlayer->durationChanged(300000);
+    //emit myPlayer->currentMediaChanged(myPlayer->playlist()->currentMedia());
 }
 
 Dialog::~Dialog()
@@ -146,15 +156,21 @@ void Dialog::onMetaDataChanged() {
     TagLib::FileRef file(myPlayer->currentMedia().canonicalUrl().path().toLatin1().data());
 	if(myPlayer->isMetaDataAvailable()) {
         //ui->label->setText(myPlayer->metaData("SampleRate").toString());
-        ui->label->setText(QString::number(file.audioProperties()->sampleRate()));
+        //ui->label->setText(QString::number(file.audioProperties()->sampleRate()));
 	}
 }
 
 void Dialog::onDurationChanged(qint64 duration) {
-
+    //ui->label->setText(QString::number(duration));
+    ui->horizontalSlider->setMaximum(duration);
 }
 
 void Dialog::onPositionChanged(qint64 pos) {
+    ui->horizontalSlider->setValue(pos);
+    pos /= 1000;
+    ui->label_2->setText((QString::number(pos / 60) + ':' +
+                          QString::number(pos % 60).rightJustified(2,'0')));
+    //ui->label_2->setText(QString::number(pos));
 	//
 }
 
@@ -162,10 +178,6 @@ void Dialog::onSongChanged(QMediaContent song) {
     int current = myPlayer->playlist()->currentIndex();
     QFont f = ui->tableWidget->item(current,1)->font();
     for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-//        ui->tableWidget->item(previousIndex,i)->setTextColor(Qt::black);
-//        ui->tableWidget->item(current,i)->setTextColor(Qt::blue);
-        //ui->tableWidget->item(current,i)->setFont(QFont("Courier"));
-        //QFont f = ui->tableWidget->item(current,i)->font();
         ui->tableWidget->item(previousIndex,i)->setFont(f);
         f.setItalic(true);
         f.setBold(true);
@@ -173,16 +185,8 @@ void Dialog::onSongChanged(QMediaContent song) {
         f.setItalic(false);
         f.setBold(false);
     }
-
-//    if(current == ui->tableWidget->currentRow()) {
-//        ui->tableWidget->setStyleSheet("selection-color: turquoise");
-//    }
-//    else if(previousIndex == ui->tableWidget->currentRow()) {
-//        ui->tableWidget->setStyleSheet("selection-color: white");
-//    }
+    ui->label->setText(ui->tableWidget->item(current,2)->text());
     previousIndex = current;
-	//lcdClear(lcd_h);
-	//lcdPosition(lcd_h,0,0);
 	for(int i=0; i<barsCount; i++) {
 		arr[i]->setValue(arr[i]->minimum());
     }
@@ -203,6 +207,8 @@ void Dialog::handleKey(const QString& key) {
                     }
                 }
                 myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+                ui->label->setText(ui->tableWidget->item(ui->tableWidget->currentRow(),2)->text());
+                ui->horizontalSlider->setMaximum(myPlayer->duration());
                 //ui->tableWidget->setStyleSheet("selection-color: turquoise");
 				myPlayer->play();
 				lcdClear(lcd_h);
@@ -241,6 +247,8 @@ void Dialog::handleKey(const QString& key) {
         for(int i=0; i<barsCount; i++) {
             arr[i]->setValue(MINBAR);
         }
+        ui->label->setText(tr("0:00"));
+        ui->label_2->setText(tr("0:00"));
 	}
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
@@ -392,7 +400,7 @@ void Dialog::onHwBtnClicked(int btn) {
 	}
 }
 
-void Dialog::lcdScroll() {
+void Dialog::onEverySecond() {
 	if(myPlayer->state() != QMediaPlayer::StoppedState) {
 		//lcdClear(lcd_h);
 		lcdPosition(lcd_h,0,0);     

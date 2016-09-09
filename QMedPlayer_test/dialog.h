@@ -60,7 +60,7 @@ public slots:
     void onMetaDataChanged();
     void onHwBtnClicked(int);
     void onCurrentCellChanged(int,int,int,int);
-    void lcdScroll();
+    void onEverySecond();
     void mySlot(int);
 
     void processBuffer(QAudioBuffer);

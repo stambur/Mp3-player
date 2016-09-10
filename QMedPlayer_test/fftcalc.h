@@ -24,9 +24,10 @@ class BufferProcessor: public QObject
   QTimer *timer;
   bool compressed, running, iscalc;
   int chunks, interval, pass, octaves;
+  int sampleRate;
   CArray complexFrame;
 public slots:
-    void processBuffer(QVector<double> _array, int duration, int octaveNum);
+    void processBuffer(QVector<double> _array, int duration, int _octaves, int _sampleRate);
 signals:
     void calculatedSpectrum(QVector<double> spectrum);
     void allDone(void);
@@ -49,7 +50,7 @@ private:
 public:
   explicit FFTCalc(QObject *parent = 0);
   ~FFTCalc();
-  void calc(QVector<double> &_array, int duration, int octaveNum);
+  void calc(QVector<double> &_array, int duration, int _octaves, int _sampleRate);
 public slots:
   void setSpectrum(QVector<double> spectrum);
   void freeCalc();

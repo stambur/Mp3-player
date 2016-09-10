@@ -79,6 +79,7 @@ private:
     double levelLeft, levelRight;
     int barsCount;
     int octaves;
+    int sampleRate;
     QVector<double> sample;
     QVector<QProgressBar*> arr;
     QAudioProbe *probe;

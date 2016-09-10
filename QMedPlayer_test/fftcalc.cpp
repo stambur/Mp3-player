@@ -36,7 +36,7 @@ FFTCalc::~FFTCalc(){
 	processorThread.wait(10000);
 }
 
-void FFTCalc::calc(QVector<double> &_array, int duration, int octaveNum){
+void FFTCalc::calc(QVector<double> &_array, int duration, int _octaves, int _sampleRate){
 	if(isBusy)
 		return;
 
@@ -46,7 +46,8 @@ void FFTCalc::calc(QVector<double> &_array, int duration, int octaveNum){
 	// start the calcs...
 	QMetaObject::invokeMethod(&processor, "processBuffer",
 			Qt::QueuedConnection, Q_ARG(QVector<double>, _array),
-			Q_ARG(int, duration), Q_ARG(int, octaveNum));
+            Q_ARG(int, duration), Q_ARG(int, _octaves),
+            Q_ARG(int, _sampleRate));
 }
 
 void FFTCalc::setSpectrum(QVector<double> spectrum){
@@ -104,8 +105,7 @@ BufferProcessor::BufferProcessor(QObject *parent){
 //	}
 
 	// nothing is running yet
-	running = false;
-
+    running = false;
 	// process buffer each 100ms (initially, of course)
     //timer->start(100);
 }
@@ -115,7 +115,7 @@ BufferProcessor::~BufferProcessor(){
 
 }
 
-void BufferProcessor::processBuffer(QVector<double> _array, int duration, int octaveNum){
+void BufferProcessor::processBuffer(QVector<double> _array, int duration, int _octaves, int _sampleRate){
 	// if the music is new, array size may change
     //qDebug() << "Poceo da procesira bafer";
     //qDebug() << "Velicina bafera: " << _array.size();
@@ -146,7 +146,8 @@ void BufferProcessor::processBuffer(QVector<double> _array, int duration, int oc
 
 	// copy the array
     //array = _array;
-	octaves = octaveNum;
+    octaves = _octaves;
+    sampleRate = _sampleRate;
 
 	// count the number of fft calculations until the chunk size
 	// is reached
@@ -203,9 +204,9 @@ void BufferProcessor::run(){
     //      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
     //
     spectrum.resize(50);
-    //ekvidistantno od 0 do 22050 Hz, dakle 22050/256
+    //qDebug() << "Sample rate ="<<sampleRate;
     double frequencies[SPECSIZE/2];
-    double resolution = 22050/(double)(SPECSIZE/2);
+    double resolution = (sampleRate/2)/(double)(SPECSIZE/2);
     double sum = 0;
     int cnt = 0;
     int i = 0;

@@ -91,12 +91,12 @@
     <rect>
      <x>241</x>
      <y>409</y>
-     <width>59</width>
-     <height>16</height>
+     <width>81</width>
+     <height>21</height>
     </rect>
    </property>
    <property name="text">
-    <string>TextLabel</string>
+    <string>ElapsedTime</string>
    </property>
   </widget>
   <widget class="QLabel" name="label">
@@ -109,7 +109,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>TextLabel</string>
+    <string>DurationTime</string>
    </property>
   </widget>
   <widget class="QSlider" name="horizontalSlider">
@@ -161,17 +161,45 @@
     </item>
    </layout>
   </widget>
-  <widget class="QSlider" name="horizontalSlider_2">
+  <widget class="QProgressBar" name="progressBar">
    <property name="geometry">
     <rect>
-     <x>490</x>
-     <y>30</y>
-     <width>160</width>
+     <x>510</x>
+     <y>100</y>
+     <width>118</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="value">
+    <number>24</number>
+   </property>
+  </widget>
+  <widget class="QListWidget" name="listWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>360</y>
+     <width>241</width>
      <height>16</height>
     </rect>
    </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
+   <property name="frameShape">
+    <enum>QFrame::Box</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Plain</enum>
+   </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::NoSelection</enum>
+   </property>
+   <property name="horizontalScrollMode">
+    <enum>QAbstractItemView::ScrollPerPixel</enum>
+   </property>
+   <property name="currentRow">
+    <number>-1</number>
    </property>
   </widget>
  </widget>

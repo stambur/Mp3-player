@@ -89,8 +89,8 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>241</x>
-     <y>409</y>
+     <x>10</x>
+     <y>320</y>
      <width>81</width>
      <height>21</height>
     </rect>
@@ -128,8 +128,8 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>490</x>
-     <y>410</y>
+     <x>120</x>
+     <y>260</y>
      <width>94</width>
      <height>74</height>
     </rect>
@@ -164,8 +164,8 @@
   <widget class="QProgressBar" name="progressBar">
    <property name="geometry">
     <rect>
-     <x>510</x>
-     <y>100</y>
+     <x>560</x>
+     <y>470</y>
      <width>118</width>
      <height>23</height>
     </rect>
@@ -192,6 +192,9 @@
    <property name="verticalScrollBarPolicy">
     <enum>Qt::ScrollBarAlwaysOff</enum>
    </property>
+   <property name="editTriggers">
+    <set>QAbstractItemView::NoEditTriggers</set>
+   </property>
    <property name="selectionMode">
     <enum>QAbstractItemView::NoSelection</enum>
    </property>
@@ -201,6 +204,84 @@
    <property name="currentRow">
     <number>-1</number>
    </property>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>430</x>
+     <y>10</y>
+     <width>261</width>
+     <height>211</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QListWidget" name="listWidget_2">
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::NoSelection</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QListWidget" name="listWidget_3">
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::NoSelection</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QTableWidget" name="tableWidget_2">
+   <property name="geometry">
+    <rect>
+     <x>405</x>
+     <y>241</y>
+     <width>161</width>
+     <height>191</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::Panel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Plain</enum>
+   </property>
+   <property name="verticalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
+   </property>
+   <property name="horizontalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
+   </property>
+   <property name="selectionMode">
+    <enum>QAbstractItemView::NoSelection</enum>
+   </property>
+   <attribute name="horizontalHeaderVisible">
+    <bool>false</bool>
+   </attribute>
+   <attribute name="verticalHeaderVisible">
+    <bool>false</bool>
+   </attribute>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

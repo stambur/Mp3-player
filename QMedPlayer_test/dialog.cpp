@@ -95,22 +95,71 @@ Dialog::Dialog(QWidget *parent) :
     ui->listWidget->setCurrentRow(0);
     //ui->listWidget->horizontalScrollBar()->setVisible(false);
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
+
+    ui->listWidget_2->addItem(tr("Naziv:"));
+    ui->listWidget_2->addItem(tr("Izvođač:"));
+    ui->listWidget_2->addItem(tr("Žanr:"));
+    ui->listWidget_2->addItem(tr("Godina:"));
+    ui->listWidget_2->addItem(tr("Kbps:"));
+    ui->listWidget_2->addItem(tr("Sample rate:"));
+    //ui->listWidget_2->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    //ui->listWidget_2->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    ui->listWidget_2->setFixedHeight(6*ui->listWidget_2->sizeHintForRow(0)+2*ui->listWidget_2->lineWidth());
+    ui->listWidget_2->setAlternatingRowColors(true);
+
+    for (int i=0; i<6; i++) {
+        ui->listWidget_3->addItem(tr("N/A"));
+    }
+    //ui->listWidget_3->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    ui->listWidget_3->setFixedHeight(ui->listWidget_2->height());
+    ui->listWidget_3->setAlternatingRowColors(true);
+    //ui->listWidget_3->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
     //ui->listWidget->horizontalScrollBar()->hide();
     //ui->tableWidget->horizontalHeader()->setVisible(false);
     //ui->tableWidget->setShowGrid(false);
     //connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
     //ui->tableWidget->setRowHeight(0,5);
-//    ui->tableWidget_2->setRowCount(1);
-//    ui->tableWidget_2->setColumnCount(1);
-//    ui->tableWidget_2->setCurrentCell(0,0);
+    ui->tableWidget_2->setRowCount(6);
+    ui->tableWidget_2->setColumnCount(2);
+    ui->tableWidget_2->setItem(0,0,new QTableWidgetItem(tr("Naziv:")));
+    ui->tableWidget_2->setItem(1,0,new QTableWidgetItem(tr("Izvođač:")));
+    ui->tableWidget_2->setItem(2,0,new QTableWidgetItem(tr("Žanr:")));
+    ui->tableWidget_2->setItem(3,0,new QTableWidgetItem(tr("Godina:")));
+    ui->tableWidget_2->setItem(4,0,new QTableWidgetItem(tr("Kbps:")));
+    ui->tableWidget_2->setItem(5,0,new QTableWidgetItem(tr("Sample rate:")));
+    for(int i=0; i<6; i++) {
+        ui->tableWidget_2->setRowHeight(i,ui->listWidget->sizeHintForRow(0));
+        ui->tableWidget_2->setItem(i,1,new QTableWidgetItem(tr("N/A")));
+    }
+    ui->tableWidget_2->setFixedHeight(6*ui->tableWidget_2->rowHeight(0) + 2*ui->tableWidget_2->lineWidth());
+    ui->tableWidget_2->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+    ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
+    ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
+    ui->tableWidget_2->setAlternatingRowColors(true);
+    //ui->tableWidget_2->setCurrentCell(0,0);
 //    ui->tableWidget_2->setItem(0,0,new QTableWidgetItem(tr("Bla")));
 //    //ui->tableWidget_2->currentItem()->setText(tr("Bla"));
 //    ui->tableWidget_2->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
 //    ui->tableWidget_2->horizontalHeader()->setStretchLastSection(true);
+    QFont tempFont = ui->tableWidget->item(0,0)->font();
+    tempFont.setBold(true);
+    tempFont.setItalic(true);
+    for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+        ui->tableWidget->item(i,2)->setFont(tempFont);
+    }
+    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
 
     ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    ui->tableWidget->setColumnWidth(0,30);
-    ui->tableWidget->setColumnWidth(2,60);
+    ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+
+    tempFont.setBold(false);
+    tempFont.setItalic(false);
+    for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+        ui->tableWidget->item(i,2)->setFont(tempFont);
+    }
+    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
+    //ui->tableWidget->setColumnWidth(0,30);
+    //ui->tableWidget->setColumnWidth(2,60);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
@@ -212,6 +261,22 @@ void Dialog::onSongChanged(QMediaContent song) {
     //ui->tableWidget_2->item(0,0)->setText(currentSong);
     ui->listWidget->currentItem()->setText(currentSong);
     ui->listWidget->horizontalScrollBar()->setValue(0);
+    //ui->listWidget_3->horizontalScrollBar()->setValue(0);
+
+    ui->listWidget_3->item(0)->setText(QString::fromStdString(file.tag()->title().to8Bit()));
+    ui->listWidget_3->item(1)->setText(QString::fromStdString(file.tag()->artist().to8Bit()));
+    ui->listWidget_3->item(2)->setText(QString::fromStdString(file.tag()->genre().to8Bit()));
+    ui->listWidget_3->item(3)->setText(QString::number(file.tag()->year()));
+    ui->listWidget_3->item(4)->setText(QString::number(file.audioProperties()->bitrate()));
+    ui->listWidget_3->item(5)->setText(QString::number(sampleRate));
+    for(int i=0; i<6; i++) {
+        if((ui->listWidget_3->item(i)->text().isEmpty()) || (ui->listWidget_3->item(i)->text()==QString::number(0))) {
+            ui->listWidget_3->item(i)->setText(tr("N/A"));
+        }
+        if(ui->listWidget_3->item(i)->text().isNull()) {
+            qDebug() << currentSong << "item no "<<i;
+        }
+    }
 }
 
 void Dialog::handleKey(const QString& key) {
@@ -260,17 +325,25 @@ void Dialog::handleKey(const QString& key) {
 	}
 	else if(key == tr("KEY_CH")) {
 		myPlayer->stop();
+
         for(int i=0; i<barsCount; i++) {
             arr[i]->setValue(MINBAR);
         }
+
         f = ui->tableWidget->currentItem()->font();
         f.setItalic(false);
         f.setBold(false);
+
         for(int i=0; i<ui->tableWidget->columnCount(); i++) {
             ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
         }
+
         ui->label->setText(tr("0:00"));
         ui->label_2->setText(tr("0:00"));
+
+        for (int i=0; i<6; i++) {
+            ui->listWidget_3->item(i)->setText(tr("N/A"));
+        }
 	}
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
@@ -295,10 +368,10 @@ void Dialog::handleKey(const QString& key) {
 		myPlayer->play();
 	}
 	else if(key == tr("KEY_CH-")) {
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
 	}
     else if(key == tr("KEY_CH+")) {
-        ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
+        //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
 	}
 	else if(key == tr("KEY_UP")) {
 		myPlayer->setVolume(myPlayer->volume() + 5);
@@ -365,7 +438,8 @@ void Dialog::onHwBtnClicked(int btn) {
 					case QMediaPlayer::StoppedState:
 						myPlayer->play();
 						lcdClear(lcd_h);
-						currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
+                        currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
+                        emit myPlayer->currentMediaChanged(myPlayer->currentMedia());
 						break;
 					case QMediaPlayer::PausedState:
 						myPlayer->play();
@@ -453,6 +527,13 @@ void Dialog::onEverySecond() {
         else {
             ui->listWidget->horizontalScrollBar()->setValue(0);
         }
+
+//        if(ui->listWidget_3->horizontalScrollBar()->value() < ui->listWidget_3->horizontalScrollBar()->maximum()) {
+//            ui->listWidget_3->horizontalScrollBar()->setValue(ui->listWidget_3->horizontalScrollBar()->value()+7);
+//        }
+//        else {
+//            ui->listWidget_3->horizontalScrollBar()->setValue(0);
+//        }
 	}
 	else {
 		lcdClear(lcd_h);

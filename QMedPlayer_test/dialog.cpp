@@ -88,31 +88,35 @@ Dialog::Dialog(QWidget *parent) :
 
     ui->label->setText(tr("0:00"));
     ui->label_2->setText(tr("0:00"));
+    ui->label->setFont(QFont("Courier New",14));
+    ui->label_2->setFont(QFont("Courier New",14));
     //ui->horizontalSlider_2->setValue(100);
     ui->progressBar->setValue(100);
 
     ui->listWidget->addItem(tr("Mi smo iskra u smrtnu prasinu, mi smo luca tamom obuzeta"));
     ui->listWidget->setCurrentRow(0);
     //ui->listWidget->horizontalScrollBar()->setVisible(false);
+    ui->listWidget->setFont(QFont("Courier New",14));
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
+    ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0)+2*ui->listWidget->lineWidth());
 
-    ui->listWidget_2->addItem(tr("Naziv:"));
-    ui->listWidget_2->addItem(tr("Izvođač:"));
-    ui->listWidget_2->addItem(tr("Žanr:"));
-    ui->listWidget_2->addItem(tr("Godina:"));
-    ui->listWidget_2->addItem(tr("Kbps:"));
-    ui->listWidget_2->addItem(tr("Sample rate:"));
-    //ui->listWidget_2->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    //ui->listWidget_2->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    ui->listWidget_2->setFixedHeight(6*ui->listWidget_2->sizeHintForRow(0)+2*ui->listWidget_2->lineWidth());
-    ui->listWidget_2->setAlternatingRowColors(true);
+//    ui->listWidget_2->addItem(tr("Naziv:"));
+//    ui->listWidget_2->addItem(tr("Izvođač:"));
+//    ui->listWidget_2->addItem(tr("Žanr:"));
+//    ui->listWidget_2->addItem(tr("Godina:"));
+//    ui->listWidget_2->addItem(tr("Kbps:"));
+//    ui->listWidget_2->addItem(tr("Sample rate:"));
+//    //ui->listWidget_2->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+//    //ui->listWidget_2->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+//    ui->listWidget_2->setFixedHeight(6*ui->listWidget_2->sizeHintForRow(0)+2*ui->listWidget_2->lineWidth());
+//    ui->listWidget_2->setAlternatingRowColors(true);
 
-    for (int i=0; i<6; i++) {
-        ui->listWidget_3->addItem(tr("N/A"));
-    }
-    //ui->listWidget_3->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    ui->listWidget_3->setFixedHeight(ui->listWidget_2->height());
-    ui->listWidget_3->setAlternatingRowColors(true);
+//    for (int i=0; i<6; i++) {
+//        ui->listWidget_3->addItem(tr("N/A"));
+//    }
+//    //ui->listWidget_3->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+//    ui->listWidget_3->setFixedHeight(ui->listWidget_2->height());
+//    ui->listWidget_3->setAlternatingRowColors(true);
     //ui->listWidget_3->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
     //ui->listWidget->horizontalScrollBar()->hide();
     //ui->tableWidget->horizontalHeader()->setVisible(false);
@@ -128,7 +132,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->setItem(4,0,new QTableWidgetItem(tr("Kbps:")));
     ui->tableWidget_2->setItem(5,0,new QTableWidgetItem(tr("Sample rate:")));
     for(int i=0; i<6; i++) {
-        ui->tableWidget_2->setRowHeight(i,ui->listWidget->sizeHintForRow(0));
+        ui->tableWidget_2->setRowHeight(i,16);
         ui->tableWidget_2->setItem(i,1,new QTableWidgetItem(tr("N/A")));
     }
     ui->tableWidget_2->setFixedHeight(6*ui->tableWidget_2->rowHeight(0) + 2*ui->tableWidget_2->lineWidth());
@@ -188,6 +192,7 @@ Dialog::Dialog(QWidget *parent) :
     connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
 	connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 	connect(myPlayer,SIGNAL(metaDataChanged()),this,SLOT(onMetaDataChanged()));
+    connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
 	lcdClear(lcd_h);
 	lcdPosition(lcd_h,0,0);
 	lcdPutchar(lcd_h,0xFF);
@@ -236,51 +241,89 @@ void Dialog::onPositionChanged(qint64 pos) {
 	//
 }
 
-void Dialog::onSongChanged(QMediaContent song) {
-    int current = myPlayer->playlist()->currentIndex();
-    QFont f = ui->tableWidget->item(current,1)->font();
-    for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-        ui->tableWidget->item(previousIndex,i)->setFont(f);
-        f.setItalic(true);
-        f.setBold(true);
-        ui->tableWidget->item(current,i)->setFont(f);
+void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
+    //qDebug() << "Usao u onstatechanged";
+    QFont f;
+    if(newState == QMediaPlayer::StoppedState) {
+        //qDebug() << "State je stopped";
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setValue(MINBAR);
+        }
+
+        f = ui->tableWidget->currentItem()->font();
         f.setItalic(false);
         f.setBold(false);
-    }
-    ui->label->setText(ui->tableWidget->item(current,2)->text());
-    previousIndex = current;
-	for(int i=0; i<barsCount; i++) {
-		arr[i]->setValue(arr[i]->minimum());
-    }
 
-    TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
-    sampleRate = file.audioProperties()->sampleRate();
-
-    currentSong = song.canonicalUrl().fileName();
-    //ui->tableWidget_2->currentItem()->setText(currentSong);
-    //ui->tableWidget_2->item(0,0)->setText(currentSong);
-    ui->listWidget->currentItem()->setText(currentSong);
-    ui->listWidget->horizontalScrollBar()->setValue(0);
-    //ui->listWidget_3->horizontalScrollBar()->setValue(0);
-
-    ui->listWidget_3->item(0)->setText(QString::fromStdString(file.tag()->title().to8Bit()));
-    ui->listWidget_3->item(1)->setText(QString::fromStdString(file.tag()->artist().to8Bit()));
-    ui->listWidget_3->item(2)->setText(QString::fromStdString(file.tag()->genre().to8Bit()));
-    ui->listWidget_3->item(3)->setText(QString::number(file.tag()->year()));
-    ui->listWidget_3->item(4)->setText(QString::number(file.audioProperties()->bitrate()));
-    ui->listWidget_3->item(5)->setText(QString::number(sampleRate));
-    for(int i=0; i<6; i++) {
-        if((ui->listWidget_3->item(i)->text().isEmpty()) || (ui->listWidget_3->item(i)->text()==QString::number(0))) {
-            ui->listWidget_3->item(i)->setText(tr("N/A"));
+        if(myPlayer->playlist()->currentIndex() != -1)
+        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+            ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
         }
-        if(ui->listWidget_3->item(i)->text().isNull()) {
-            qDebug() << currentSong << "item no "<<i;
+
+        ui->label->setText(tr("0:00"));
+        ui->label_2->setText(tr("0:00"));
+
+        for (int i=0; i<6; i++) {
+            ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
         }
     }
 }
 
-void Dialog::handleKey(const QString& key) {
+void Dialog::onSongChanged(QMediaContent song) {
+    //qDebug() << "Usao u onsongchanged";
     QFont f;
+    if(myPlayer->playlist()->currentIndex() >= 0) {
+        int current = myPlayer->playlist()->currentIndex();
+        f = ui->tableWidget->item(current,1)->font();
+        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+            ui->tableWidget->item(previousIndex,i)->setFont(f);
+            f.setItalic(true);
+            f.setBold(true);
+            ui->tableWidget->item(current,i)->setFont(f);
+            f.setItalic(false);
+            f.setBold(false);
+        }
+        ui->label->setText(ui->tableWidget->item(current,2)->text());
+        previousIndex = current;
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setValue(arr[i]->minimum());
+        }
+
+        TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
+        sampleRate = file.audioProperties()->sampleRate();
+
+        currentSong = song.canonicalUrl().fileName();
+
+        //ui->tableWidget_2->currentItem()->setText(currentSong);
+        //ui->tableWidget_2->item(0,0)->setText(currentSong);
+        ui->listWidget->currentItem()->setText(currentSong);
+        ui->listWidget->horizontalScrollBar()->setValue(0);
+        //ui->listWidget_3->horizontalScrollBar()->setValue(0);
+        ui->tableWidget_2->item(0,1)->setText(QString::fromStdString(file.tag()->title().to8Bit()));
+        ui->tableWidget_2->item(1,1)->setText(QString::fromStdString(file.tag()->artist().to8Bit()));
+        ui->tableWidget_2->item(2,1)->setText(QString::fromStdString(file.tag()->genre().to8Bit()));
+        ui->tableWidget_2->item(3,1)->setText(QString::number(file.tag()->year()));
+        ui->tableWidget_2->item(4,1)->setText(QString::number(file.audioProperties()->bitrate()));
+        ui->tableWidget_2->item(5,1)->setText(QString::number(sampleRate));
+        for(int i=0; i<6; i++) {
+            if((ui->tableWidget_2->item(i,1)->text().isEmpty()) || (ui->tableWidget_2->item(i,1)->text()==QString::number(0))) {
+                ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
+            }
+        }
+    }
+    else {
+//        myPlayer->playlist()->setCurrentIndex(0);
+//        qDebug() << "setovao indeks na 0";
+        f = ui->tableWidget->item(0,1)->font();
+        f.setBold(false);
+        f.setItalic(false);
+        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+            ui->tableWidget->item(previousIndex,i)->setFont(f);
+        }
+        myPlayer->stop();
+    }
+}
+
+void Dialog::handleKey(const QString& key) {
 	if(key == tr("KEY_PLAY")) {
 		switch(myPlayer->state()) {
 			case QMediaPlayer::StoppedState:
@@ -321,34 +364,18 @@ void Dialog::handleKey(const QString& key) {
                     myPlayer->play();
                 }
 				break;
-		}
+        }
 	}
 	else if(key == tr("KEY_CH")) {
-		myPlayer->stop();
-
-        for(int i=0; i<barsCount; i++) {
-            arr[i]->setValue(MINBAR);
-        }
-
-        f = ui->tableWidget->currentItem()->font();
-        f.setItalic(false);
-        f.setBold(false);
-
-        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-            ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
-        }
-
-        ui->label->setText(tr("0:00"));
-        ui->label_2->setText(tr("0:00"));
-
-        for (int i=0; i<6; i++) {
-            ui->listWidget_3->item(i)->setText(tr("N/A"));
-        }
+        myPlayer->stop();
 	}
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
 		lcdClear(lcd_h);
-        if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
+        if(ui->radioButton_6->isChecked()) {
+            myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
+        }
+        else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
             myPlayer->playlist()->setCurrentIndex(0);
         }
         else {
@@ -359,7 +386,15 @@ void Dialog::handleKey(const QString& key) {
 	else if(key == tr("KEY_PREVIOUS")) {
 		scrollCounter = 0;
 		lcdClear(lcd_h);
-		if(myPlayer->playlist()->currentIndex()==0) {
+        if(ui->radioButton_6->isChecked()) {
+            if(myPlayer->playlist()->currentIndex()) {
+                myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
+            }
+            else {
+                myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
+            }
+        }
+        else if(myPlayer->playlist()->currentIndex()==0) {
 			myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
 		}
 		else {
@@ -369,6 +404,26 @@ void Dialog::handleKey(const QString& key) {
 	}
 	else if(key == tr("KEY_CH-")) {
         //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()-20);
+        if(ui->radioButton_4->isChecked()) {
+            ui->radioButton_5->setChecked(true);
+            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
+        }
+        else if(ui->radioButton_5->isChecked()) {
+            ui->radioButton_6->setChecked(true);
+            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemOnce);
+        }
+        else if(ui->radioButton_6->isChecked()) {
+            ui->radioButton_7->setChecked(true);
+            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemInLoop);
+        }
+        else if(ui->radioButton_7->isChecked()) {
+            ui->radioButton_8->setChecked(true);
+            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Random);
+        }
+        else {
+            ui->radioButton_4->setChecked(true);
+            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+        }
 	}
     else if(key == tr("KEY_CH+")) {
         //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
@@ -419,7 +474,7 @@ void Dialog::handleKey(const QString& key) {
 		lcdClear(lcd_h);
 		delete ui;
 		exit(0);
-	}
+    }
 }
 
 void Dialog::onHwBtnClicked(int btn) {

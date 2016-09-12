@@ -60,6 +60,7 @@ public slots:
     void onMetaDataChanged();
     void onHwBtnClicked(int);
     void onCurrentCellChanged(int,int,int,int);
+    void onPlayerStateChanged(QMediaPlayer::State);
     void onEverySecond();
     void mySlot(int);
 

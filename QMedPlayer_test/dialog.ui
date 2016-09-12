@@ -16,8 +16,8 @@
   <widget class="QTableWidget" name="tableWidget">
    <property name="geometry">
     <rect>
-     <x>9</x>
-     <y>9</y>
+     <x>0</x>
+     <y>100</y>
      <width>411</width>
      <height>211</height>
     </rect>
@@ -89,11 +89,16 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>320</y>
-     <width>81</width>
-     <height>21</height>
+     <x>370</x>
+     <y>10</y>
+     <width>51</width>
+     <height>41</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
    </property>
    <property name="text">
     <string>ElapsedTime</string>
@@ -102,11 +107,16 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>285</y>
-     <width>101</width>
-     <height>31</height>
+     <x>440</x>
+     <y>10</y>
+     <width>51</width>
+     <height>41</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
    </property>
    <property name="text">
     <string>DurationTime</string>
@@ -116,7 +126,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>480</y>
+     <y>50</y>
      <width>411</width>
      <height>31</height>
     </rect>
@@ -128,8 +138,8 @@
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>120</x>
-     <y>260</y>
+     <x>170</x>
+     <y>390</y>
      <width>94</width>
      <height>74</height>
     </rect>
@@ -164,8 +174,8 @@
   <widget class="QProgressBar" name="progressBar">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>470</y>
+     <x>540</x>
+     <y>50</y>
      <width>118</width>
      <height>23</height>
     </rect>
@@ -177,11 +187,17 @@
   <widget class="QListWidget" name="listWidget">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>360</y>
-     <width>241</width>
+     <x>40</x>
+     <y>10</y>
+     <width>301</width>
      <height>16</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Nimbus Roman No9 L</family>
+     <pointsize>14</pointsize>
+    </font>
    </property>
    <property name="frameShape">
     <enum>QFrame::Box</enum>
@@ -205,60 +221,13 @@
     <number>-1</number>
    </property>
   </widget>
-  <widget class="QWidget" name="layoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>430</x>
-     <y>10</y>
-     <width>261</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <property name="spacing">
-     <number>0</number>
-    </property>
-    <item>
-     <widget class="QListWidget" name="listWidget_2">
-      <property name="verticalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOff</enum>
-      </property>
-      <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOff</enum>
-      </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::NoSelection</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QListWidget" name="listWidget_3">
-      <property name="verticalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOff</enum>
-      </property>
-      <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOff</enum>
-      </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::NoEditTriggers</set>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::NoSelection</enum>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
   <widget class="QTableWidget" name="tableWidget_2">
    <property name="geometry">
     <rect>
-     <x>405</x>
-     <y>241</y>
-     <width>161</width>
-     <height>191</height>
+     <x>430</x>
+     <y>100</y>
+     <width>261</width>
+     <height>211</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -282,6 +251,56 @@
    <attribute name="verticalHeaderVisible">
     <bool>false</bool>
    </attribute>
+  </widget>
+  <widget class="QWidget" name="">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>390</y>
+     <width>155</width>
+     <height>126</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QRadioButton" name="radioButton_4">
+      <property name="text">
+       <string>All in loop</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="radioButton_5">
+      <property name="text">
+       <string>Sequential</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="radioButton_6">
+      <property name="text">
+       <string>Current song once</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="radioButton_7">
+      <property name="text">
+       <string>Current song in loop</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="radioButton_8">
+      <property name="text">
+       <string>Random</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

@@ -30,19 +30,24 @@ Dialog::Dialog(QWidget *parent) :
     probe = new QAudioProbe(this);
 	qRegisterMetaType< QVector<double> >("QVector<double>");
 
+    myHLayout = new QHBoxLayout();
 	barsCount = 9;
 	octaves = 1;
 	arr.resize(barsCount);
 	for(int i=0; i<barsCount; i++) {
-		arr[i] = new QProgressBar(this);
+        arr[i] = new QProgressBar();
 		arr[i]->setOrientation(Qt::Vertical);
 		arr[i]->setTextVisible(false);
-		arr[i]->resize(10,95);
-		arr[i]->move(300+10*i,300);
+        //arr[i]->resize(10,95);
+        arr[i]->setFixedSize(QSize(10,100));
+        myHLayout->addWidget(arr[i]);
+        myHLayout->setSpacing(0);
+        //arr[i]->move(300+10*i,300);
         arr[i]->setMinimum(MINBAR);
         arr[i]->setMaximum(MAXBAR);
         arr[i]->setValue(MINBAR);
 	}
+    ui->horizontalLayout_3->addLayout(myHLayout);
 
 	connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),
             this, SLOT(processBuffer(QAudioBuffer)));
@@ -88,6 +93,7 @@ Dialog::Dialog(QWidget *parent) :
 
     ui->label->setText(tr("0:00"));
     ui->label_2->setText(tr("0:00"));
+    ui->label_4->setFont(QFont("Courier New",14));
     ui->label->setFont(QFont("Courier New",14));
     ui->label_2->setFont(QFont("Courier New",14));
     //ui->horizontalSlider_2->setValue(100);
@@ -100,29 +106,6 @@ Dialog::Dialog(QWidget *parent) :
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
     ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0)+2*ui->listWidget->lineWidth());
 
-//    ui->listWidget_2->addItem(tr("Naziv:"));
-//    ui->listWidget_2->addItem(tr("Izvođač:"));
-//    ui->listWidget_2->addItem(tr("Žanr:"));
-//    ui->listWidget_2->addItem(tr("Godina:"));
-//    ui->listWidget_2->addItem(tr("Kbps:"));
-//    ui->listWidget_2->addItem(tr("Sample rate:"));
-//    //ui->listWidget_2->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-//    //ui->listWidget_2->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-//    ui->listWidget_2->setFixedHeight(6*ui->listWidget_2->sizeHintForRow(0)+2*ui->listWidget_2->lineWidth());
-//    ui->listWidget_2->setAlternatingRowColors(true);
-
-//    for (int i=0; i<6; i++) {
-//        ui->listWidget_3->addItem(tr("N/A"));
-//    }
-//    //ui->listWidget_3->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-//    ui->listWidget_3->setFixedHeight(ui->listWidget_2->height());
-//    ui->listWidget_3->setAlternatingRowColors(true);
-    //ui->listWidget_3->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
-    //ui->listWidget->horizontalScrollBar()->hide();
-    //ui->tableWidget->horizontalHeader()->setVisible(false);
-    //ui->tableWidget->setShowGrid(false);
-    //connect(ui->tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(mySlot()));
-    //ui->tableWidget->setRowHeight(0,5);
     ui->tableWidget_2->setRowCount(6);
     ui->tableWidget_2->setColumnCount(2);
     ui->tableWidget_2->setItem(0,0,new QTableWidgetItem(tr("Naziv:")));
@@ -140,11 +123,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget_2->setAlternatingRowColors(true);
-    //ui->tableWidget_2->setCurrentCell(0,0);
-//    ui->tableWidget_2->setItem(0,0,new QTableWidgetItem(tr("Bla")));
-//    //ui->tableWidget_2->currentItem()->setText(tr("Bla"));
-//    ui->tableWidget_2->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-//    ui->tableWidget_2->horizontalHeader()->setStretchLastSection(true);
+
     QFont tempFont = ui->tableWidget->item(0,0)->font();
     tempFont.setBold(true);
     tempFont.setItalic(true);
@@ -427,6 +406,15 @@ void Dialog::handleKey(const QString& key) {
 	}
     else if(key == tr("KEY_CH+")) {
         //ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+20);
+        if(ui->radioButton_9->isChecked()) {
+            ui->radioButton_10->setChecked(true);
+        }
+        else if(ui->radioButton_10->isChecked()) {
+            ui->radioButton_11->setChecked(true);
+        }
+        else {
+            ui->radioButton_9->setChecked(true);
+        }
 	}
 	else if(key == tr("KEY_UP")) {
 		myPlayer->setVolume(myPlayer->volume() + 5);
@@ -687,8 +675,9 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 void Dialog::loadSamples(QVector<double> samples) {
 	//QVector<double> samples = spectrum;
 	if(barsCount != samples.size()) {
-		for (int i=0; i<barsCount; i++) {
-			arr[i]->deleteLater();
+        for (int i=0; i<barsCount; i++) {
+            myHLayout->removeWidget(arr[i]);
+            arr[i]->deleteLater();
 		}
 
         //qDebug() << "Obrisani barovi";
@@ -697,16 +686,20 @@ void Dialog::loadSamples(QVector<double> samples) {
 
 		arr.resize(barsCount);
 		for(int i=0; i<barsCount; i++) {
-			arr[i] = new QProgressBar(this);
+            arr[i] = new QProgressBar();
 			arr[i]->setOrientation(Qt::Vertical);
 			arr[i]->setTextVisible(false);
-			arr[i]->resize(10,95);
-			arr[i]->move(300+10*i,300);
+            //arr[i]->resize(10,95);
+            arr[i]->setFixedSize(QSize(10,100));
+            myHLayout->addWidget(arr[i]);
+            myHLayout->setSpacing(0);
+            //arr[i]->move(300+10*i,300);
             arr[i]->setMinimum(MINBAR);
             arr[i]->setMaximum(MAXBAR);
             arr[i]->setValue(MINBAR);
-			arr[i]->show();
+            //arr[i]->show();
 		}
+        ui->horizontalLayout_3->addLayout(myHLayout);
         //qDebug() << "Postavljeni novi barovi";
     }
 	//QString bla;

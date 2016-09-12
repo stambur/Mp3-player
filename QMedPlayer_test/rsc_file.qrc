@@ -4,5 +4,9 @@
         <file>logo.png</file>
         <file>radio.jpg</file>
         <file>RPi_music.jpg</file>
+        <file>VolumeNormal.png</file>
+        <file>VolumeNormalBlue.png</file>
+        <file>VolumeNormalRed.png</file>
+        <file>VolumePressedBlue.png</file>
     </qresource>
 </RCC>

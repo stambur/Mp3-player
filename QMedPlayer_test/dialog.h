@@ -76,6 +76,7 @@ private:
     int scrollCounter;
     uchar lcdMode;
     int previousIndex;
+    QHBoxLayout* myHLayout;
 
     double levelLeft, levelRight;
     int barsCount;

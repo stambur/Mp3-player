@@ -36,7 +36,6 @@
      </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
-background-color: rgb(235, 255, 255);
 border: 1px solid gray;
 border-radius: 9px;
 margin-top: 0.5em;
@@ -227,7 +226,6 @@ padding: 0 3px 0 3px;
     <widget class="QGroupBox" name="groupBox_3">
      <property name="styleSheet">
       <string notr="true">QGroupBox {
-background-color: rgb(235, 255, 255);
 border: 1px solid gray;
 border-radius: 9px;
 margin-top: 0.5em;
@@ -319,7 +317,6 @@ padding: 0 3px 0 3px;
     <widget class="QGroupBox" name="groupBox_2">
      <property name="styleSheet">
       <string notr="true">QGroupBox {
-background-color: rgb(235, 255, 255);
 border: 1px solid gray;
 border-radius: 9px;
 margin-top: 0.5em;

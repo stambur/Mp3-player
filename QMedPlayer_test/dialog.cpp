@@ -124,7 +124,6 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     ui->tableWidget->setCurrentCell(0,1);
     ui->tableWidget->setAutoScroll(true);
-    ui->tableWidget->setProperty("myProperty","bla");
     connect(ui->tableWidget,SIGNAL(currentCellChanged(int,int,int,int)),this,SLOT(onCurrentCellChanged(int,int,int,int)));
     connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
 
@@ -344,22 +343,19 @@ void Dialog::handleKey(const QString& key) {
             ui->radioButton_10->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
             ui->label_3->setScaledContents(true);
-            this->setProperty("colorScheme","green");
-            this->updateStyleSheets();
+            this->updateStyleSheets(tr("green"));
         }
         else if(ui->radioButton_10->isChecked()) {
             ui->radioButton_11->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormalRed.png"));
             ui->label_3->setScaledContents(true);
-            this->setProperty("colorScheme","red");
-            this->updateStyleSheets();
+            this->updateStyleSheets(tr("red"));
         }
         else {
             ui->radioButton_9->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormalBlue.png"));
             ui->label_3->setScaledContents(true);
-            this->setProperty("colorScheme","blue");
-            this->updateStyleSheets();
+            this->updateStyleSheets(tr("blue"));
         }
 	}
 	else if(key == tr("KEY_UP")) {
@@ -407,7 +403,19 @@ void Dialog::handleKey(const QString& key) {
     }
 }
 
-void Dialog::updateStyleSheets() {
+void Dialog::updateStyleSheets(QString color) {
+    //qDebug() << color;
+    this->setProperty("colorScheme",color);
+    ui->groupBox->setProperty("colorScheme",color);
+    ui->groupBox_2->setProperty("colorScheme",color);
+    ui->groupBox_3->setProperty("colorScheme",color);
+//    ui->groupBox_4->setProperty("colorScheme",color);
+//    ui->groupBox_5->setProperty("colorScheme",color);
+//    ui->groupBox_6->setProperty("colorScheme",color);
+    ui->tableWidget->setProperty("colorScheme",color);
+    ui->tableWidget_2->setProperty("colorScheme",color);
+    ui->horizontalSlider->setProperty("colorScheme",color);
+    ui->progressBar->setProperty("colorScheme",color);
     this->style()->polish(this);
     this->style()->unpolish(this);
     ui->groupBox->style()->polish(ui->groupBox);
@@ -416,6 +424,12 @@ void Dialog::updateStyleSheets() {
     ui->groupBox_2->style()->unpolish(ui->groupBox_2);
     ui->groupBox_3->style()->polish(ui->groupBox_3);
     ui->groupBox_3->style()->unpolish(ui->groupBox_3);
+//    ui->groupBox_4->style()->polish(ui->groupBox_4);
+//    ui->groupBox_4->style()->unpolish(ui->groupBox_4);
+//    ui->groupBox_5->style()->polish(ui->groupBox_5);
+//    ui->groupBox_5->style()->unpolish(ui->groupBox_5);
+//    ui->groupBox_6->style()->polish(ui->groupBox_6);
+//    ui->groupBox_6->style()->unpolish(ui->groupBox_6);
     ui->tableWidget->style()->polish(ui->tableWidget);
     ui->tableWidget->style()->unpolish(ui->tableWidget);
     ui->tableWidget_2->style()->polish(ui->tableWidget_2);
@@ -425,6 +439,7 @@ void Dialog::updateStyleSheets() {
     ui->progressBar->style()->polish(ui->progressBar);
     ui->progressBar->style()->unpolish(ui->progressBar);
     for(int i=0; i<barsCount; i++) {
+        arr[i]->setProperty("colorScheme",color);
         arr[i]->style()->polish(arr[i]);
         arr[i]->style()->unpolish(arr[i]);
     }

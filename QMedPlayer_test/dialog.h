@@ -86,7 +86,7 @@ private:
     QAudioProbe *probe;
     FFTCalc *calculator;
 
-    void updateStyleSheets();
+    void updateStyleSheets(QString);
 };
 
 #endif // DIALOG_H

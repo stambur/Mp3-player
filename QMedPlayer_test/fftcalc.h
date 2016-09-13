@@ -20,9 +20,8 @@ class BufferProcessor: public QObject
   QVector<double> array;
   QVector<double> window;
   QVector<double> spectrum;
-  QVector<double> logscale;
   QTimer *timer;
-  bool compressed, running, iscalc;
+  bool running, iscalc;
   int chunks, interval, pass, octaves;
   int sampleRate;
   CArray complexFrame;

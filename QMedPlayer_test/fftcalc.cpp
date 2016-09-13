@@ -85,29 +85,16 @@ BufferProcessor::BufferProcessor(QObject *parent){
 	// only half spectrum is used because of the simetry property
 	spectrum.resize(SPECSIZE/2);
 
-	// logscale is used for audio spectrum display
-	logscale.resize(SPECSIZE/2+1);
-
-	// by default, spectrum is log scaled (compressed)
-    //compressed = false;
-
 	// window function (HANN)
 	for(int i=0; i<SPECSIZE;i++){
         window[i] = 0.5 * (1 - cos((2*PI*i)/(SPECSIZE-1))); //HANN
 //        window[i] = 1 - 1.93 * cos((2*PI*i)/(SPECSIZE-1)) + 1.29 * cos((4*PI*i)/(SPECSIZE-1)) -
 //                0.388 * cos((6*PI*i)/(SPECSIZE-1)) + 0.028 * cos((8*PI*i)/(SPECSIZE-1)); //FLAT TOP
-        //qDebug() << "Pendzer od"<<i<<"="<<window[i];
 	}
 
-	// the log scale
-//	for(int i=0; i<=SPECSIZE/2; i++){
-//		logscale[i] = powf (SPECSIZE/2, (float) 2*i / SPECSIZE) - 0.5f;
-//	}
 
 	// nothing is running yet
     running = false;
-	// process buffer each 100ms (initially, of course)
-    //timer->start(100);
 }
 
 BufferProcessor::~BufferProcessor(){

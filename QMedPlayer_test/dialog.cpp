@@ -287,7 +287,7 @@ void Dialog::handleKey(const QString& key) {
 	else if(key == tr("KEY_NEXT")) {
 		scrollCounter = 0;
 		lcdClear(lcd_h);
-        if(ui->radioButton_6->isChecked()) {
+        if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
             myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
         }
         else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
@@ -301,7 +301,7 @@ void Dialog::handleKey(const QString& key) {
 	else if(key == tr("KEY_PREVIOUS")) {
 		scrollCounter = 0;
 		lcdClear(lcd_h);
-        if(ui->radioButton_6->isChecked()) {
+        if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
             if(myPlayer->playlist()->currentIndex()) {
                 myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
             }

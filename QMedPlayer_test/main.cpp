@@ -2,7 +2,7 @@
 #include <QApplication>
 
 #define DEBOUNCE_TIME 70
-
+#define BLASTRING "QTableWidget[myProperty=bla]{background:skyblue} QTableWidget[myProperty=kek]{background:darkblue}"
 void btn_int1(void);
 void btn_int2(void);
 void btn_int3(void);
@@ -16,7 +16,7 @@ Dialog *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    a.setStyleSheet(QObject::tr("QTableWidget[myProperty=bla]{background:skyblue} QTableWidget[myProperty=kek]{background:darkblue}"));
+    a.setStyleSheet(QObject::tr(BLASTRING));
     int retVal;
 
     QSplashScreen *splash = new QSplashScreen;

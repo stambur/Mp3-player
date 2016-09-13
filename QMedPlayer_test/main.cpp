@@ -2,7 +2,23 @@
 #include <QApplication>
 
 #define DEBOUNCE_TIME 70
-#define BLASTRING "QTableWidget[myProperty=bla]{background:skyblue} QTableWidget[myProperty=kek]{background:darkblue}"
+
+//Stylesheets
+#define TABLESS "QTableWidget[colorScheme=blue]{background:skyblue} \
+                QTableWidget[colorScheme=green]{background:green} \
+                QTableWidget[colorScheme=red]{background:red}"
+#define DIALOGSS "Dialog[colorScheme=blue]{background:skyblue} \
+                Dialog[colorScheme=green]{background:green} \
+                Dialog[colorScheme=red]{background:red}"
+#define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: rgb(235, 255, 255); \
+                               border: 1px solid gray; \
+                               border-radius: 9px; \
+                               margin-top: 0.5em; \
+                              } \
+                    QGroupBox::title[colorScheme=blue] {subcontrol-origin: margin; \
+                                      left: 10px; \
+                                      padding: 0 3px 0 3px; \
+                                     }"
 void btn_int1(void);
 void btn_int2(void);
 void btn_int3(void);
@@ -16,7 +32,7 @@ Dialog *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    a.setStyleSheet(QObject::tr(BLASTRING));
+    a.setStyleSheet(QObject::tr(TABLESS DIALOGSS GROUPBOXSS));
     int retVal;
 
     QSplashScreen *splash = new QSplashScreen;

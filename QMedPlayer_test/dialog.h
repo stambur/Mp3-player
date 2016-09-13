@@ -66,7 +66,6 @@ public slots:
 
     void processBuffer(QAudioBuffer);
     void loadSamples(QVector<double>);
-//    void loadLevels(double,double);
 
 private:
     Ui::Dialog *ui;
@@ -86,6 +85,8 @@ private:
     QVector<QProgressBar*> arr;
     QAudioProbe *probe;
     FFTCalc *calculator;
+
+    void updateStyleSheets();
 };
 
 #endif // DIALOG_H

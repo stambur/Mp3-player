@@ -92,8 +92,11 @@ padding: 0 3px 0 3px;
           <property name="sizeConstraint">
            <enum>QLayout::SetMinAndMaxSize</enum>
           </property>
+          <property name="horizontalSpacing">
+           <number>6</number>
+          </property>
           <property name="verticalSpacing">
-           <number>0</number>
+           <number>3</number>
           </property>
           <item row="0" column="0">
            <widget class="QListWidget" name="listWidget">
@@ -102,6 +105,9 @@ padding: 0 3px 0 3px;
               <family>Nimbus Roman No9 L</family>
               <pointsize>14</pointsize>
              </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true"/>
             </property>
             <property name="frameShape">
              <enum>QFrame::NoFrame</enum>
@@ -433,7 +439,7 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_9">
              <property name="text">
-              <string>Standard</string>
+              <string>Plava</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -443,14 +449,14 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_10">
              <property name="text">
-              <string>Plava</string>
+              <string>Zelena</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_11">
              <property name="text">
-              <string>Zelena</string>
+              <string>Crvena</string>
              </property>
             </widget>
            </item>

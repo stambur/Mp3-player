@@ -82,7 +82,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->listWidget->setCurrentRow(0);
     ui->listWidget->setFont(QFont("Courier New",14));
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
-    ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0)+2*ui->listWidget->lineWidth());
+    ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0));//+2*ui->listWidget->lineWidth());
 
     ui->tableWidget_2->setRowCount(6);
     ui->tableWidget_2->setColumnCount(2);
@@ -342,12 +342,24 @@ void Dialog::handleKey(const QString& key) {
     else if(key == tr("KEY_CH+")) {
         if(ui->radioButton_9->isChecked()) {
             ui->radioButton_10->setChecked(true);
+            ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
+            ui->label_3->setScaledContents(true);
+            this->setProperty("colorScheme","green");
+            this->updateStyleSheets();
         }
         else if(ui->radioButton_10->isChecked()) {
             ui->radioButton_11->setChecked(true);
+            ui->label_3->setPixmap(tr(":/imgs/VolumeNormalRed.png"));
+            ui->label_3->setScaledContents(true);
+            this->setProperty("colorScheme","red");
+            this->updateStyleSheets();
         }
         else {
             ui->radioButton_9->setChecked(true);
+            ui->label_3->setPixmap(tr(":/imgs/VolumeNormalBlue.png"));
+            ui->label_3->setScaledContents(true);
+            this->setProperty("colorScheme","blue");
+            this->updateStyleSheets();
         }
 	}
 	else if(key == tr("KEY_UP")) {
@@ -383,19 +395,38 @@ void Dialog::handleKey(const QString& key) {
     }
     else if(key == tr("KEY_3")) {
         ui->tableWidget->setProperty("myProperty","kek");
-        ui->tableWidget->style()->unpolish(ui->tableWidget);
-        ui->tableWidget->style()->polish(ui->tableWidget);
     }
     else if(key == tr("KEY_1")) {
         ui->tableWidget->setProperty("myProperty","bla");
-        ui->tableWidget->style()->unpolish(ui->tableWidget);
-        ui->tableWidget->style()->polish(ui->tableWidget);
     }
 	else {
 		myPlayer->stop();
 		lcdClear(lcd_h);
 		delete ui;
 		exit(0);
+    }
+}
+
+void Dialog::updateStyleSheets() {
+    this->style()->polish(this);
+    this->style()->unpolish(this);
+    ui->groupBox->style()->polish(ui->groupBox);
+    ui->groupBox->style()->unpolish(ui->groupBox);
+    ui->groupBox_2->style()->polish(ui->groupBox_2);
+    ui->groupBox_2->style()->unpolish(ui->groupBox_2);
+    ui->groupBox_3->style()->polish(ui->groupBox_3);
+    ui->groupBox_3->style()->unpolish(ui->groupBox_3);
+    ui->tableWidget->style()->polish(ui->tableWidget);
+    ui->tableWidget->style()->unpolish(ui->tableWidget);
+    ui->tableWidget_2->style()->polish(ui->tableWidget_2);
+    ui->tableWidget_2->style()->unpolish(ui->tableWidget_2);
+    ui->horizontalSlider->style()->polish(ui->horizontalSlider);
+    ui->horizontalSlider->style()->unpolish(ui->horizontalSlider);
+    ui->progressBar->style()->polish(ui->progressBar);
+    ui->progressBar->style()->unpolish(ui->progressBar);
+    for(int i=0; i<barsCount; i++) {
+        arr[i]->style()->polish(arr[i]);
+        arr[i]->style()->unpolish(arr[i]);
     }
 }
 

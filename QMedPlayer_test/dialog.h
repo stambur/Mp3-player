@@ -50,19 +50,14 @@ public:
 signals:
     void hw_btn_clicked(int);
 
-    int levels(double left, double right);
-
 public slots:
     void handleKey(const QString&);
     void onDurationChanged(qint64);
     void onSongChanged(QMediaContent);
     void onPositionChanged(qint64);
-    void onMetaDataChanged();
     void onHwBtnClicked(int);
-    void onCurrentCellChanged(int,int,int,int);
     void onPlayerStateChanged(QMediaPlayer::State);
     void onEverySecond();
-    void mySlot(int);
 
     void processBuffer(QAudioBuffer);
     void loadSamples(QVector<double>);
@@ -76,8 +71,8 @@ private:
     uchar lcdMode;
     int previousIndex;
     QHBoxLayout* myHLayout;
+    QString color;
 
-    double levelLeft, levelRight;
     int barsCount;
     int octaves;
     int sampleRate;
@@ -86,7 +81,7 @@ private:
     QAudioProbe *probe;
     FFTCalc *calculator;
 
-    void updateStyleSheets(QString);
+    void updateStyleSheets();
 };
 
 #endif // DIALOG_H

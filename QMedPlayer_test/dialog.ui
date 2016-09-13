@@ -34,6 +34,12 @@
        <height>191</height>
       </size>
      </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
 border: 1px solid gray;
@@ -208,6 +214,9 @@ padding: 0 3px 0 3px;
             </item>
             <item>
              <widget class="QProgressBar" name="progressBar">
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
               <property name="value">
                <number>24</number>
               </property>
@@ -224,6 +233,12 @@ padding: 0 3px 0 3px;
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox_3">
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
 border: 1px solid gray;
@@ -315,6 +330,12 @@ padding: 0 3px 0 3px;
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox_2">
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
 border: 1px solid gray;

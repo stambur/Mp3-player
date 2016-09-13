@@ -24,6 +24,7 @@ Dialog::Dialog(QWidget *parent) :
     lcdMode = 0;
     previousIndex = 0;
     sampleRate = 44100;
+    color = tr("blue");
 
 	sample.resize(SPECSIZE);
     calculator = new FFTCalc(this);
@@ -78,7 +79,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->label_2->setFont(QFont("Courier New",14));
     ui->progressBar->setValue(100);
 
-    ui->listWidget->addItem(tr("Mi smo iskra u smrtnu prasinu, mi smo luca tamom obuzeta"));
+    ui->listWidget->addItem(tr("Play stopped"));
     ui->listWidget->setCurrentRow(0);
     ui->listWidget->setFont(QFont("Courier New",14));
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
@@ -96,7 +97,7 @@ Dialog::Dialog(QWidget *parent) :
         ui->tableWidget_2->setRowHeight(i,16);
         ui->tableWidget_2->setItem(i,1,new QTableWidgetItem(tr("N/A")));
     }
-    ui->tableWidget_2->setFixedHeight(6*ui->tableWidget_2->rowHeight(0) + 2*ui->tableWidget_2->lineWidth());
+    ui->tableWidget_2->setFixedHeight(6*ui->tableWidget_2->rowHeight(0));
     ui->tableWidget_2->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
@@ -123,8 +124,6 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     ui->tableWidget->setCurrentCell(0,1);
-    ui->tableWidget->setAutoScroll(true);
-    connect(ui->tableWidget,SIGNAL(currentCellChanged(int,int,int,int)),this,SLOT(onCurrentCellChanged(int,int,int,int)));
     connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
 
 	myPlaylist->addMedia(content);
@@ -134,8 +133,7 @@ Dialog::Dialog(QWidget *parent) :
     connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
 	connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
     connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
-	connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
-	connect(myPlayer,SIGNAL(metaDataChanged()),this,SLOT(onMetaDataChanged()));
+    connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
     connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
 	lcdClear(lcd_h);
 	lcdPosition(lcd_h,0,0);
@@ -147,23 +145,13 @@ Dialog::Dialog(QWidget *parent) :
     }
 
     probe->setSource(myPlayer);
-    ui->gridLayout->setSizeConstraint(QLayout::SetFixedSize);
+    this->updateStyleSheets();
 }
 
 Dialog::~Dialog()
 {
 	lcdClear(lcd_h);
 	delete ui;
-}
-
-void Dialog::mySlot(int index) {
-}
-
-void Dialog::onCurrentCellChanged(int currRow, int currCol, int prevRow, int prevCol) {
-}
-
-void Dialog::onMetaDataChanged() {
-
 }
 
 void Dialog::onDurationChanged(qint64 duration) {
@@ -195,6 +183,7 @@ void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
 
         ui->label->setText(tr("0:00"));
         ui->label_2->setText(tr("0:00"));
+        ui->listWidget->currentItem()->setText(tr("Play stopped"));
 
         for (int i=0; i<6; i++) {
             ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
@@ -343,19 +332,22 @@ void Dialog::handleKey(const QString& key) {
             ui->radioButton_10->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
             ui->label_3->setScaledContents(true);
-            this->updateStyleSheets(tr("green"));
+            color = tr("green");
+            this->updateStyleSheets();
         }
         else if(ui->radioButton_10->isChecked()) {
             ui->radioButton_11->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormalRed.png"));
             ui->label_3->setScaledContents(true);
-            this->updateStyleSheets(tr("red"));
+            color = tr("red");
+            this->updateStyleSheets();
         }
         else {
             ui->radioButton_9->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormalBlue.png"));
             ui->label_3->setScaledContents(true);
-            this->updateStyleSheets(tr("blue"));
+            color = tr("blue");
+            this->updateStyleSheets();
         }
 	}
 	else if(key == tr("KEY_UP")) {
@@ -403,19 +395,74 @@ void Dialog::handleKey(const QString& key) {
     }
 }
 
-void Dialog::updateStyleSheets(QString color) {
-    //qDebug() << color;
+void Dialog::updateStyleSheets() {
     this->setProperty("colorScheme",color);
     ui->groupBox->setProperty("colorScheme",color);
     ui->groupBox_2->setProperty("colorScheme",color);
     ui->groupBox_3->setProperty("colorScheme",color);
-//    ui->groupBox_4->setProperty("colorScheme",color);
-//    ui->groupBox_5->setProperty("colorScheme",color);
-//    ui->groupBox_6->setProperty("colorScheme",color);
+
     ui->tableWidget->setProperty("colorScheme",color);
-    ui->tableWidget_2->setProperty("colorScheme",color);
-    ui->horizontalSlider->setProperty("colorScheme",color);
-    ui->progressBar->setProperty("colorScheme",color);
+    if(color == tr("blue")) {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(230, 230, 255));
+                ui->tableWidget->item(i,j)->setForeground(QBrush("violet"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: skyblue; selection-background-color: rgb(20, 170, 255)"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: skyblue; selection-background-color: rgb(20, 170, 255)"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: rgb(20, 170, 255)"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:blue"));
+    }
+    else if(color == tr("green")) {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(200, 255, 200));
+                ui->tableWidget->item(i,j)->setForeground(QBrush("yellow"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: rgb(152, 251, 152); selection-background-color: green"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: rgb(152, 251, 152); selection-background-color: green"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: green"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:green"));
+    }
+    else {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                ui->tableWidget->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: red"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:red"));
+    }
+
     this->style()->polish(this);
     this->style()->unpolish(this);
     ui->groupBox->style()->polish(ui->groupBox);
@@ -424,25 +471,8 @@ void Dialog::updateStyleSheets(QString color) {
     ui->groupBox_2->style()->unpolish(ui->groupBox_2);
     ui->groupBox_3->style()->polish(ui->groupBox_3);
     ui->groupBox_3->style()->unpolish(ui->groupBox_3);
-//    ui->groupBox_4->style()->polish(ui->groupBox_4);
-//    ui->groupBox_4->style()->unpolish(ui->groupBox_4);
-//    ui->groupBox_5->style()->polish(ui->groupBox_5);
-//    ui->groupBox_5->style()->unpolish(ui->groupBox_5);
-//    ui->groupBox_6->style()->polish(ui->groupBox_6);
-//    ui->groupBox_6->style()->unpolish(ui->groupBox_6);
     ui->tableWidget->style()->polish(ui->tableWidget);
     ui->tableWidget->style()->unpolish(ui->tableWidget);
-    ui->tableWidget_2->style()->polish(ui->tableWidget_2);
-    ui->tableWidget_2->style()->unpolish(ui->tableWidget_2);
-    ui->horizontalSlider->style()->polish(ui->horizontalSlider);
-    ui->horizontalSlider->style()->unpolish(ui->horizontalSlider);
-    ui->progressBar->style()->polish(ui->progressBar);
-    ui->progressBar->style()->unpolish(ui->progressBar);
-    for(int i=0; i<barsCount; i++) {
-        arr[i]->setProperty("colorScheme",color);
-        arr[i]->style()->polish(arr[i]);
-        arr[i]->style()->unpolish(arr[i]);
-    }
 }
 
 void Dialog::onHwBtnClicked(int btn) {
@@ -570,8 +600,6 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 	if(buffer.frameCount() < 512)
 		return;
 
-	// return left and right audio mean levels
-	levelLeft = levelRight = 0;
 	// It only knows how to process stereo audio frames
 	// mono frames = :P
 	if(buffer.format().channelCount() != 2)
@@ -591,9 +619,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 
 		// scale everything to [0,1]
 		for(int i=0; i<buffer.frameCount(); i++){
-			sample[i] = (data[i].left + data[i].right)/2/peakValue;
-//			levelLeft+= abs(data[i].left)/peakValue;
-//			levelRight+= abs(data[i].right)/peakValue;
+            sample[i] = (data[i].left + data[i].right)/2/peakValue;
 		}
 	}
 
@@ -607,9 +633,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 		else
 			peakValue=UCHAR_MAX;
 		for(int i=0; i<buffer.frameCount(); i++){
-			sample[i] = (data[i].left + data[i].right)/2/peakValue;
-//			levelLeft+= abs(data[i].left)/peakValue;
-//			levelRight+= abs(data[i].right)/peakValue;
+            sample[i] = (data[i].left + data[i].right)/2/peakValue;
 		}
 	}
 
@@ -624,11 +648,7 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 			// some tests produced infinity values :p
 			if(sample[i] != sample[i]){
 				sample[i] = 0;
-			}
-			else{
-				levelLeft+= abs(data[i].left)/peakValue;
-				levelRight+= abs(data[i].right)/peakValue;
-			}
+            }
 		}
 	}
 
@@ -662,6 +682,7 @@ void Dialog::loadSamples(QVector<double> samples) {
             arr[i]->setMaximum(MAXBAR);
             arr[i]->setValue(MINBAR);
         }
+        this->updateStyleSheets();
     }
 
     for(int i=0; i<barsCount; i++) {

@@ -1,16 +1,16 @@
 #include "dialog.h"
 #include <QApplication>
 
-#define DEBOUNCE_TIME 70
+#define DEBOUNCE_TIME 100
 
 //Stylesheets
-#define TABLESS "QTableWidget[colorScheme=blue]{background:skyblue} \
-                QTableWidget[colorScheme=green]{background:green} \
-                QTableWidget[colorScheme=red]{background:red}"
-#define DIALOGSS "Dialog[colorScheme=blue]{background:skyblue} \
+#define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:turquoise} \
+                QTableWidget[colorScheme=green]::item{selection-background-color:magenta} \
+                QTableWidget[colorScheme=red]::item{selection-background-color:cyan}"
+#define DIALOGSS "Dialog[colorScheme=blue]{background:rgb(20, 170, 255)} \
                 Dialog[colorScheme=green]{background:green} \
                 Dialog[colorScheme=red]{background:red}"
-#define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: rgb(230, 255, 255);} \
+#define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: skyblue;} \
                     QGroupBox[colorScheme=green] {background-color: rgb(152, 251, 152);} \
                     QGroupBox[colorScheme=red] {background-color: rgb(235, 60, 60);}"
 void btn_int1(void);

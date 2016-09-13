@@ -1,8 +1,5 @@
 #include "fftcalc.h"
 
-#undef CLAMP
-#define CLAMP(a,min,max) ((a) < (min) ? (min) : (a) > (max) ? (max) : (a))
-
 // fftcalc class is designed to treat with fft calculations
 FFTCalc::FFTCalc(QObject *parent)
 	:QObject(parent){
@@ -103,9 +100,7 @@ BufferProcessor::~BufferProcessor(){
 }
 
 void BufferProcessor::processBuffer(QVector<double> _array, int duration, int _octaves, int _sampleRate){
-	// if the music is new, array size may change
-    //qDebug() << "Poceo da procesira bafer";
-    //qDebug() << "Velicina bafera: " << _array.size();
+    // if the music is new, array size may change
 	if(array.size() != _array.size()){
         if(_array.size() >= SPECSIZE) {
             //array is splitted into a set of small chunks
@@ -145,8 +140,7 @@ void BufferProcessor::processBuffer(QVector<double> _array, int duration, int _o
 		interval = 1;
 
 	// redefines the timer interval
-	timer->start(interval);
-    //qDebug() << "Zavrsio procesiranje bafera, octave = "<<octaves;
+    timer->start(interval);
 }
 
 void BufferProcessor::run(){
@@ -174,22 +168,11 @@ void BufferProcessor::run(){
 	fft(complexFrame);
 
 	// some scaling/windowing is needed for displaying the fourier spectrum somewhere
-	for(uint i=0; i<SPECSIZE/2;i++){
-		//    amplitude = SpectrumAnalyserMultiplier*std::abs(complexFrame[i]);
-		//    amplitude = qMax(qreal(0.0), amplitude);
-		//    amplitude = qMin(qreal(1.0), amplitude);
-		//    complexFrame[i] = amplitude;
-		amplitude = 2*std::abs(complexFrame[i])/SPECSIZE;
-        //qDebug() << "Sample " << i << " after fft: "<< amplitude;
+    for(uint i=0; i<SPECSIZE/2;i++){
+        amplitude = 2*std::abs(complexFrame[i])/SPECSIZE;
 		complexFrame[i] = amplitude;
 	}
 
-	// audio spectrum is usually compressed for better displaying
-
-    // if not compressed, just copy the real part clamped between 0 and 1
-    //    for(int i=0; i<SPECSIZE/2; i++){
-    //      spectrum[i] = CLAMP(complexFrame[i].real()*100,0,1);
-    //
     spectrum.resize(50);
     //qDebug() << "Sample rate ="<<sampleRate;
     double frequencies[SPECSIZE/2];
@@ -199,11 +182,10 @@ void BufferProcessor::run(){
     int i = 0;
     double central = 15.625;
     double lower,upper;
-    //static double max = 300;
+
     //qDebug() << "Resolution ="<<resolution;
     for(int i=0; i<SPECSIZE/2; i++) {
         sum = i*resolution;
-        //qDebug() << "Sum of"<<i<<"is"<<sum;
         frequencies[i] = sum;
         //qDebug() << "Frequency "<< QString::number(i) << ": "<< QString::number(sum,'f',2);
     }
@@ -211,16 +193,12 @@ void BufferProcessor::run(){
     upper = central*powf(2,(float)1/(2*octaves));
     lower = central/powf(2,(float)1/(2*octaves));
 
-    //qDebug() << lower;
-    //qDebug() << upper;
-
-    while((upper < frequencies[1]) || (upper<20)) {// || (upper<20)
+    while((upper < frequencies[1]) || (upper<20)) {
         central = central*powf(2,(float)1/octaves);
         upper = central*powf(2,(float)1/(2*octaves));
         lower = central/powf(2,(float)1/(2*octaves));
     }
 
-    //for(int i=8; i>=0; i--) {
     while(lower < 20000) {
         sum = 0;
         cnt = 0;

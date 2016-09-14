@@ -366,7 +366,7 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_3">
              <property name="text">
-              <string>1/3 Octave</string>
+              <string>1/3 oktave</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -376,14 +376,14 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_2">
              <property name="text">
-              <string>1/2 Octave</string>
+              <string>1/2 oktave</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton">
              <property name="text">
-              <string>1/1 Octave</string>
+              <string>1 oktava</string>
              </property>
              <property name="checked">
               <bool>false</bool>
@@ -406,7 +406,7 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_4">
              <property name="text">
-              <string>All in loop</string>
+              <string>Redom sa ponavljanjem</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -416,28 +416,28 @@ padding: 0 3px 0 3px;
            <item>
             <widget class="QRadioButton" name="radioButton_5">
              <property name="text">
-              <string>Sequential</string>
+              <string>Redom bez ponavljanja</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_6">
              <property name="text">
-              <string>Current song once</string>
+              <string>Tekuća pjesma jednom</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_7">
              <property name="text">
-              <string>Current song in loop</string>
+              <string>Tekuća pjesma stalno</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_8">
              <property name="text">
-              <string>Random</string>
+              <string>Slučajan redosled</string>
              </property>
             </widget>
            </item>

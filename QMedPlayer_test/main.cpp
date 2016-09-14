@@ -6,13 +6,13 @@
 //Stylesheets za boje
 #define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:rgb(51, 151, 213);} \
                 QTableWidget[colorScheme=green]::item{selection-background-color:rgb(0, 170, 43);} \
-                QTableWidget[colorScheme=red]::item{selection-background-color:rgb(128, 0, 0);}"
+                QTableWidget[colorScheme=red]::item{selection-background-color:rgb(255, 52, 48);}"
 #define DIALOGSS "Dialog[colorScheme=blue]{background:rgb(51, 151, 213);} \
-                Dialog[colorScheme=green]{background:rgb(0, 170, 43)} \
-                Dialog[colorScheme=red]{background:rgb(128, 0, 0)}"
+                Dialog[colorScheme=green]{background:rgb(0, 170, 43);} \
+                Dialog[colorScheme=red]{background:rgb(255, 52, 48);}"
 #define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: rgb(109, 180, 208);} \
                     QGroupBox[colorScheme=green] {background-color: rgb(125, 240, 113);} \
-                    QGroupBox[colorScheme=red] {background-color: rgb(235, 60, 60);}"
+                    QGroupBox[colorScheme=red] {background-color: rgb(238, 114, 102);}"
 
 void btn_int1(void);
 void btn_int2(void);

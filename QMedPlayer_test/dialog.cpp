@@ -104,7 +104,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->label_2->setFont(QFont("Courier New",14));
     ui->progressBar->setValue(100);
 
-    ui->listWidget->addItem(tr("Play stopped"));
+    ui->listWidget->addItem(tr("Plejer je zaustavljen"));
     ui->listWidget->setCurrentRow(0);
     ui->listWidget->setFont(QFont("Courier New",14));
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
@@ -197,7 +197,7 @@ void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
 
         ui->label->setText(tr("0:00"));
         ui->label_2->setText(tr("0:00"));
-        ui->listWidget->currentItem()->setText(tr("Play stopped"));
+        ui->listWidget->currentItem()->setText(tr("Plejer je zaustavljen"));
 
         for (int i=0; i<6; i++) {
             ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
@@ -454,13 +454,11 @@ void Dialog::updateStyleSheets() {
         for(int i=0; i<ui->tableWidget->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget->columnCount(); j++) {
                 ui->tableWidget->item(i,j)->setBackgroundColor(QColor(193, 224, 242));
-                //ui->tableWidget->item(i,j)->setForeground(QBrush("violet"));
             }
         }
         for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
                 ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(193, 224, 242));
-                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
             }
         }
         for(int i=0; i<barsCount; i++) {
@@ -474,13 +472,11 @@ void Dialog::updateStyleSheets() {
         for(int i=0; i<ui->tableWidget->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget->columnCount(); j++) {
                 ui->tableWidget->item(i,j)->setBackgroundColor(QColor(201, 255, 152));
-                //ui->tableWidget->item(i,j)->setForeground(QBrush("yellow"));
             }
         }
         for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
                 ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(201, 255, 152));
-                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
             }
         }
         for(int i=0; i<barsCount; i++) {
@@ -493,21 +489,19 @@ void Dialog::updateStyleSheets() {
     else {
         for(int i=0; i<ui->tableWidget->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget->columnCount(); j++) {
-                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                //ui->tableWidget->item(i,j)->setForeground(QBrush("orange"));
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(252, 167, 170));
             }
         }
         for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
             for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
-                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(252, 167, 170));
             }
         }
         for(int i=0; i<barsCount; i++) {
-            arr[i]->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
+            arr[i]->setStyleSheet(tr("background-color: rgb(252, 167, 170); selection-background-color: rgb(255, 52, 48);"));
         }
-        ui->progressBar->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
-        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: red"));
+        ui->progressBar->setStyleSheet(tr("background-color: rgb(252, 167, 170); selection-background-color: rgb(255, 52, 48);"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: rgb(255, 52, 48)"));
         ui->listWidget->setStyleSheet(tr("selection-background-color:red"));
     }
 }

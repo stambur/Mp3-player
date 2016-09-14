@@ -9,56 +9,69 @@ Dialog::Dialog(QWidget *parent) :
 	ui(new Ui::Dialog)
 {
 	ui->setupUi(this);
+
+    //inicijalizacija LCD
 	lcd_h = lcdInit(2, 16, 4, RS, EN, D0, D1, D2, D3, D0, D1, D2, D3);
 
 	if (lcd_h < 0) {
 		fprintf (stderr, "lcdInit failed\n") ;
 	}
 
-	uchar vol[8] = {0b00001, 0b00011, 0b11011, 0b11011, 0b11011, 0b00011, 0b00001}; //volume icon
-	uchar pse[8] = {0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011}; //pause icon
+    //karakteri za LCD
+    uchar vol[8] = {0b00001, 0b00011, 0b11011, 0b11011, 0b11011, 0b00011, 0b00001}; //karakter za jacinu zvuka
+    uchar pse[8] = {0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011}; //karakter za pauzu
 	lcdCharDef(lcd_h, 0, vol);
     lcdCharDef(lcd_h, 1, pse);
 
+    //podesavanje pocetnog prikaza na LCD
+    lcdClear(lcd_h);
+    lcdPosition(lcd_h,0,0);
+    lcdPutchar(lcd_h,0xFF);
+    lcdPutchar(lcd_h,0xFF);
+    lcdPrintf(lcd_h,"Play stopped");
+    for(int i=0; i<18; i++) {
+        lcdPutchar(lcd_h,0xFF);
+    }
+
+    //inicijalizacija clanova klase
 	scrollCounter = 0;
     lcdMode = 0;
     previousIndex = 0;
     sampleRate = 44100;
     color = tr("blue");
-
 	sample.resize(SPECSIZE);
     calculator = new FFTCalc(this);
     probe = new QAudioProbe(this);
 	qRegisterMetaType< QVector<double> >("QVector<double>");
-
     myHLayout = new QHBoxLayout();
     barsCount = 0;
     octaves = 3;
-    arr.resize(barsCount);
+    myPlayer = new QMediaPlayer(this);
+    myLirc = new Lirc(this); //klasa Lirc implementirana u lirc.cpp
+
+    //dodavanje layout-a u GUI, gridLayout_2 postaje parent layout-u clanu klase
     ui->gridLayout_2->addLayout(myHLayout,1,0,Qt::AlignCenter);
 
-	connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),
-            this, SLOT(processBuffer(QAudioBuffer)));
-	connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),
-			this, SLOT(loadSamples(QVector<double>)));
+    //povezivanje odgovarajucih signala i slotova
+    connect(probe, SIGNAL(audioBufferProbed(QAudioBuffer)),this, SLOT(processBuffer(QAudioBuffer)));
+    connect(calculator, SIGNAL(calculatedSpectrum(QVector<double>)),this, SLOT(loadSamples(QVector<double>)));
+    connect(myLirc,SIGNAL(key_event(QString)),this,SLOT(handleKey(QString)));
+    connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 
-	myPlayer = new QMediaPlayer(this);
-	QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
-
-	Lirc *myLirc = new Lirc(this);
-	connect(myLirc,SIGNAL(key_event(QString)),this,SLOT(handleKey(QString)));
-
+    //deklarisanje i inicijalizacija tajmera na 1 sekundu
 	QTimer *myTimer = new QTimer(this);
     connect(myTimer, SIGNAL(timeout()), this, SLOT(onEverySecond()));
 	myTimer->start(1000);
 
+    //preuzimanje putanja fajlova sa USB-a i popunjavanje plejliste u GUI-u
     ui->tableWidget->setColumnCount(3);
 	int count = 0;
 
-	QString directory = QString::fromUtf8(usbPath());
+    QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
     QDir dir(directory);
 	QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
 	QList<QMediaContent> content;
+
 	for(const QString& f:files)
     {
 		content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
@@ -69,9 +82,21 @@ Dialog::Dialog(QWidget *parent) :
         ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
                     QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
         count++;
-
 	}
 
+    //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
+    QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
+    myPlaylist->addMedia(content);
+    myPlayer->setPlaylist(myPlaylist);
+    myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+    myPlayer->playlist()->setCurrentIndex(0);
+    connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
+    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
+    connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
+    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
+    connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
+
+    //inicijalizacija elemenata GUI-a
     ui->label->setText(tr("0:00"));
     ui->label_2->setText(tr("0:00"));
     ui->label_4->setFont(QFont("Courier New",14));
@@ -83,7 +108,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->listWidget->setCurrentRow(0);
     ui->listWidget->setFont(QFont("Courier New",14));
     ui->listWidget->horizontalScrollBar()->setStyleSheet(tr("width:0px;"));
-    ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0));//+2*ui->listWidget->lineWidth());
+    ui->listWidget->setFixedHeight(ui->listWidget->sizeHintForRow(0));
 
     ui->tableWidget_2->setRowCount(6);
     ui->tableWidget_2->setColumnCount(2);
@@ -103,46 +128,32 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget_2->setAlternatingRowColors(true);
 
+    //ovde se postavlja bold italic font(pa se kasnije vraca u standardni), posto ce u tom slucaju
+    //biti najsire kolone, pa da se prema njemu automatski podesi sirina
     QFont tempFont = ui->tableWidget->item(0,0)->font();
     tempFont.setBold(true);
     tempFont.setItalic(true);
+
     for(int i=0; i<ui->tableWidget->rowCount(); i++) {
         ui->tableWidget->item(i,2)->setFont(tempFont);
-    }
-    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
+    }   
 
+    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
     ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
     ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-
     tempFont.setBold(false);
     tempFont.setItalic(false);
+
     for(int i=0; i<ui->tableWidget->rowCount(); i++) {
         ui->tableWidget->item(i,2)->setFont(tempFont);
     }
+
     ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
+
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     ui->tableWidget->setCurrentCell(0,1);
-    connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
-
-	myPlaylist->addMedia(content);
-    myPlayer->setPlaylist(myPlaylist);
-    myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
-    myPlayer->playlist()->setCurrentIndex(0);
-    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
-	connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
-    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
-    connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
-    connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
-	lcdClear(lcd_h);
-	lcdPosition(lcd_h,0,0);
-	lcdPutchar(lcd_h,0xFF);
-	lcdPutchar(lcd_h,0xFF);
-	lcdPrintf(lcd_h,"Play stopped");
-	for(int i=0; i<18; i++) {
-		lcdPutchar(lcd_h,0xFF);
-    }
 
     probe->setSource(myPlayer);
     this->updateStyleSheets();
@@ -154,10 +165,12 @@ Dialog::~Dialog()
 	delete ui;
 }
 
+//duration je trajanje pjesme u milisekundama
 void Dialog::onDurationChanged(qint64 duration) {
     ui->horizontalSlider->setMaximum(duration);
 }
 
+//pos je vrijeme proteklo od pocetka pjesme u milisekundama
 void Dialog::onPositionChanged(qint64 pos) {
     ui->horizontalSlider->setValue(pos);
     pos /= 1000;
@@ -165,6 +178,7 @@ void Dialog::onPositionChanged(qint64 pos) {
                           QString::number(pos % 60).rightJustified(2,'0')));
 }
 
+//kada je stanje stopped, vrati sve na pocetne vrijednosti
 void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
     QFont f;
     if(newState == QMediaPlayer::StoppedState) {
@@ -191,10 +205,14 @@ void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
     }
 }
 
+//kada se pjesma promijeni, azuriraj sve potrebne elemente interfejsa
 void Dialog::onSongChanged(QMediaContent song) {
     QFont f;
+    //kod nekih rezima rada currentIndex bude -1 u odredjenim situacijama, pa samo zaustavi sve u tom slucaju
     if(myPlayer->playlist()->currentIndex() >= 0) {
         int current = myPlayer->playlist()->currentIndex();
+
+        //podesi font bold italic za onu pjesmu koja trenutno ide, a vrati font na standardni za prethodnu
         f = ui->tableWidget->item(current,1)->font();
         for(int i=0; i<ui->tableWidget->columnCount(); i++) {
             ui->tableWidget->item(previousIndex,i)->setFont(f);
@@ -204,12 +222,16 @@ void Dialog::onSongChanged(QMediaContent song) {
             f.setItalic(false);
             f.setBold(false);
         }
+
         ui->label->setText(ui->tableWidget->item(current,2)->text());
         previousIndex = current;
+
+        //progres barove koji prikazuju spektar vrati na minimum
         for(int i=0; i<barsCount; i++) {
             arr[i]->setValue(arr[i]->minimum());
         }
 
+        //popuni tabelu sa informacijama o tekucoj pjesmi
         TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
         sampleRate = file.audioProperties()->sampleRate();
 
@@ -230,6 +252,7 @@ void Dialog::onSongChanged(QMediaContent song) {
         }
     }
     else {
+        //vrati font i stopiraj plejer, slot onStateChanged ce onda odraditi ostalo
         f = ui->tableWidget->item(0,1)->font();
         f.setBold(false);
         f.setItalic(false);
@@ -240,8 +263,10 @@ void Dialog::onSongChanged(QMediaContent song) {
     }
 }
 
+//prepoznavanje koda sa daljinskog
 void Dialog::handleKey(const QString& key) {
 	if(key == tr("KEY_PLAY")) {
+        //ovo dugme ima funkciju play/pause
 		switch(myPlayer->state()) {
             case QMediaPlayer::StoppedState:
                 myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
@@ -270,12 +295,16 @@ void Dialog::handleKey(const QString& key) {
         }
 	}
 	else if(key == tr("KEY_CH")) {
+        //dugme stop
         myPlayer->stop();
 	}
 	else if(key == tr("KEY_NEXT")) {
+        //dugme next
 		scrollCounter = 0;
-		lcdClear(lcd_h);
+        lcdClear(lcd_h);
         if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
+            //za odredjene rezime rada koji su aktivni kad su ovi radio-button-i selektovani, po default-u
+            //se ne ide uobicajeno na sledecu pjesmu, pa ispravi to
             myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
         }
         else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
@@ -287,6 +316,7 @@ void Dialog::handleKey(const QString& key) {
 		myPlayer->play();
 	}
 	else if(key == tr("KEY_PREVIOUS")) {
+        //dugme previous
 		scrollCounter = 0;
 		lcdClear(lcd_h);
         if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
@@ -306,6 +336,7 @@ void Dialog::handleKey(const QString& key) {
 		myPlayer->play();
 	}
     else if(key == tr("KEY_CH-")) {
+        //dugme za biranje rezima rada, povezi sa button-ima na GUI-u i setuj sta treba
         if(ui->radioButton_4->isChecked()) {
             ui->radioButton_5->setChecked(true);
             myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
@@ -328,6 +359,7 @@ void Dialog::handleKey(const QString& key) {
         }
 	}
     else if(key == tr("KEY_CH+")) {
+        //dugme za biranje kolor seme, povezi sa GUI-em i pozovi odgovarajuce funkcije
         if(ui->radioButton_9->isChecked()) {
             ui->radioButton_10->setChecked(true);
             ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
@@ -351,12 +383,15 @@ void Dialog::handleKey(const QString& key) {
         }
 	}
 	else if(key == tr("KEY_UP")) {
+        //dugme volume up
 		myPlayer->setVolume(myPlayer->volume() + 5);
 	}
 	else if(key == tr("KEY_DOWN")) {
+        //dugme volume down
 		myPlayer->setVolume(myPlayer->volume() - 5);
 	}
 	else if(key == tr("KEY_EQ")) {
+        //dugme za biranje prikaza spektra, setuj promjenljivu, thread ce odraditi svoje
         if(ui->radioButton_3->isChecked()) {
 			ui->radioButton_2->setChecked(true);
 			octaves = 2;
@@ -371,9 +406,11 @@ void Dialog::handleKey(const QString& key) {
 		}
 	}
     else if(key == tr("KEY_5")) {
+        //dugme up, za kretanje po plejlisti
         ui->tableWidget->setCurrentCell((ui->tableWidget->currentRow()+1)%ui->tableWidget->rowCount(),1);
     }
     else if(key == tr("KEY_2")) {
+        //dugme down, za kretanje po plejlisti
         if(ui->tableWidget->currentRow()) {
             ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1,1);
         }
@@ -381,13 +418,8 @@ void Dialog::handleKey(const QString& key) {
             ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
         }
     }
-    else if(key == tr("KEY_3")) {
-        ui->tableWidget->setProperty("myProperty","kek");
-    }
-    else if(key == tr("KEY_1")) {
-        ui->tableWidget->setProperty("myProperty","bla");
-    }
-	else {
+    else if(key == tr("KEY_100+")){
+        //dugme za izlazak iz programa
 		myPlayer->stop();
 		lcdClear(lcd_h);
 		delete ui;
@@ -395,74 +427,17 @@ void Dialog::handleKey(const QString& key) {
     }
 }
 
+//funkcija za azuriranje boja
 void Dialog::updateStyleSheets() {
+    //ovi sa set property koriste dynamic properties opciju u qt-u(brza varijanta)
+    //stylesheet-ovi su definisani u main-u u zavisnosti od property-ja za citavu aplikaciju
     this->setProperty("colorScheme",color);
     ui->groupBox->setProperty("colorScheme",color);
     ui->groupBox_2->setProperty("colorScheme",color);
     ui->groupBox_3->setProperty("colorScheme",color);
-
     ui->tableWidget->setProperty("colorScheme",color);
-    if(color == tr("blue")) {
-        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
-                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(230, 230, 255));
-                ui->tableWidget->item(i,j)->setForeground(QBrush("violet"));
-            }
-        }
-        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
-                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
-            }
-        }
-        for(int i=0; i<barsCount; i++) {
-            arr[i]->setStyleSheet(tr("background-color: skyblue; selection-background-color: rgb(20, 170, 255)"));
-        }
-        ui->progressBar->setStyleSheet(tr("background-color: skyblue; selection-background-color: rgb(20, 170, 255)"));
-        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: rgb(20, 170, 255)"));
-        ui->listWidget->setStyleSheet(tr("selection-background-color:blue"));
-    }
-    else if(color == tr("green")) {
-        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
-                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(200, 255, 200));
-                ui->tableWidget->item(i,j)->setForeground(QBrush("yellow"));
-            }
-        }
-        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
-                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
-            }
-        }
-        for(int i=0; i<barsCount; i++) {
-            arr[i]->setStyleSheet(tr("background-color: rgb(152, 251, 152); selection-background-color: green"));
-        }
-        ui->progressBar->setStyleSheet(tr("background-color: rgb(152, 251, 152); selection-background-color: green"));
-        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: green"));
-        ui->listWidget->setStyleSheet(tr("selection-background-color:green"));
-    }
-    else {
-        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
-                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                ui->tableWidget->item(i,j)->setForeground(QBrush("orange"));
-            }
-        }
-        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
-            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
-                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
-                ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
-            }
-        }
-        for(int i=0; i<barsCount; i++) {
-            arr[i]->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
-        }
-        ui->progressBar->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
-        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: red"));
-        ui->listWidget->setStyleSheet(tr("selection-background-color:red"));
-    }
 
+    //moraju da se refresh-uju
     this->style()->polish(this);
     this->style()->unpolish(this);
     ui->groupBox->style()->polish(ui->groupBox);
@@ -473,8 +448,71 @@ void Dialog::updateStyleSheets() {
     ui->groupBox_3->style()->unpolish(ui->groupBox_3);
     ui->tableWidget->style()->polish(ui->tableWidget);
     ui->tableWidget->style()->unpolish(ui->tableWidget);
+
+    //oni sto nisu mogli preko dynamic property idu rucno, podesavanjem stylesheet-a ovde(sporija varijanta)
+    if(color == tr("blue")) {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(193, 224, 242));
+                //ui->tableWidget->item(i,j)->setForeground(QBrush("violet"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(193, 224, 242));
+                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: rgb(193, 224, 242); selection-background-color: rgb(51, 151, 213);"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: skyblue; selection-background-color: rgb(51, 151, 213);"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: rgb(51, 151, 213);"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:blue"));
+    }
+    else if(color == tr("green")) {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(201, 255, 152));
+                //ui->tableWidget->item(i,j)->setForeground(QBrush("yellow"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(201, 255, 152));
+                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: rgb(201, 255, 152); selection-background-color: rgb(0, 170, 43);"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: rgb(201, 255, 152); selection-background-color: rgb(0, 170, 43);"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: rgb(0, 170, 43);"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:green"));
+    }
+    else {
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget->columnCount(); j++) {
+                ui->tableWidget->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                //ui->tableWidget->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<ui->tableWidget_2->rowCount(); i++) {
+            for(int j=0; j<ui->tableWidget_2->columnCount(); j++) {
+                ui->tableWidget_2->item(i,j)->setBackgroundColor(QColor(255, 230, 230));
+                //ui->tableWidget_2->item(i,j)->setForeground(QBrush("orange"));
+            }
+        }
+        for(int i=0; i<barsCount; i++) {
+            arr[i]->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
+        }
+        ui->progressBar->setStyleSheet(tr("background-color: rgb(235, 60, 60); selection-background-color: red"));
+        ui->horizontalSlider->setStyleSheet(tr("selection-background-color: red"));
+        ui->listWidget->setStyleSheet(tr("selection-background-color:red"));
+    }
 }
 
+//prepoznavanje tastera sa DVK i zadavanje odgovarajucih komandi plejeru
 void Dialog::onHwBtnClicked(int btn) {
 	switch(btn) {
 		case BTN_1: //mode
@@ -537,6 +575,8 @@ void Dialog::onHwBtnClicked(int btn) {
 	}
 }
 
+//funkcija koja se izvrsava na svaki tik tajmera
+//regulise prikaz na LCD, kao i automatsko skrolovanje teksta tekuce pjesme u GUI-u
 void Dialog::onEverySecond() {
     if(myPlayer->state() != QMediaPlayer::StoppedState) {
 		lcdPosition(lcd_h,0,0);     
@@ -592,7 +632,8 @@ void Dialog::onEverySecond() {
 	}
 }
 
-
+//obradi bafer koji qaudioprobe posalje sa stream-a
+//ovo su dekodovani semplovi
 void Dialog::processBuffer(QAudioBuffer buffer){
 	qreal peakValue;
 	int duration;
@@ -600,13 +641,14 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 	if(buffer.frameCount() < 512)
 		return;
 
-	// It only knows how to process stereo audio frames
-	// mono frames = :P
+    //ako nije stereo, onda nista
 	if(buffer.format().channelCount() != 2)
 		return;
 
 	sample.resize(buffer.frameCount());
-	// audio is signed int
+
+    //u zavisnosti od tipa podataka (signed int, unsigned int ili float), podesi peak value,
+    //nadji aritmeticku sredinu oba kanala i normalizuj na [0,1]
 	if(buffer.format().sampleType() == QAudioFormat::SignedInt){
 		QAudioBuffer::S16S *data = buffer.data<QAudioBuffer::S16S>();
 		// peak value changes according to sample size.
@@ -617,13 +659,10 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 		else
 			peakValue=CHAR_MAX;
 
-		// scale everything to [0,1]
 		for(int i=0; i<buffer.frameCount(); i++){
             sample[i] = (data[i].left + data[i].right)/2/peakValue;
 		}
-	}
-
-	// audio is unsigned int
+    }
 	else if(buffer.format().sampleType() == QAudioFormat::UnSignedInt){
 		QAudioBuffer::S16U *data = buffer.data<QAudioBuffer::S16U>();
 		if (buffer.format().sampleSize() == 32)
@@ -635,32 +674,30 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 		for(int i=0; i<buffer.frameCount(); i++){
             sample[i] = (data[i].left + data[i].right)/2/peakValue;
 		}
-	}
-
-	// audio is float type
+    }
 	else if(buffer.format().sampleType() == QAudioFormat::Float){
 		QAudioBuffer::S32F *data = buffer.data<QAudioBuffer::S32F>();
 		//peakValue = 1.00003;
 		peakValue = 1.0;
 		for(int i=0; i<buffer.frameCount(); i++){
 			sample[i] = (data[i].left + data[i].right)/2/peakValue;
-			// test if sample[i] is infinity (it works)
-			// some tests produced infinity values :p
+            //nekad se desi da bude beskonacno, ovako moze da se provjeri
 			if(sample[i] != sample[i]){
 				sample[i] = 0;
             }
 		}
 	}
 
-	// if the probe is listening to the audio
-	// do fft calculations
-	// when it is done, calculator will tell us
+    //ako je probe jos aktivan, racunaj fft
     if(probe->isActive()){
 		duration = buffer.format().durationForBytes(buffer.frameCount())/1000;
-        calculator->calc(sample, duration, octaves, sampleRate);
+        calculator->calc(sample, duration, octaves, sampleRate); //posalji podatke u thread gdje ce se racunati fft
+        //pogledati fftcalc.cpp za detalje
     }
 }
 
+//obrada spektra dobijenog iz thread-a
+//glavni dio je tamo odradjen, ovde se samo azuriraju progres bar-ovi za GUI
 void Dialog::loadSamples(QVector<double> samples) {
 	if(barsCount != samples.size()) {
         for (int i=0; i<barsCount; i++) {

@@ -10,9 +10,8 @@
 #include <QObject>
 #include "fft.h"
 
-// the size of fft array that is dispatched to
-// mainwindow
-#define SPECSIZE 2048 //bilo 2048
+//broj tacaka u kojim trazimo fft
+#define SPECSIZE 2048
 
 class BufferProcessor: public QObject
 {
@@ -35,7 +34,6 @@ protected slots:
 public:
     explicit BufferProcessor(QObject *parent=0);
     ~BufferProcessor();
-    //void calc(QVector<double> &_array, int duration, int octaveNum);
 };
 
 // fftcalc runs in a separate thread

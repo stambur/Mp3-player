@@ -1,18 +1,19 @@
 #include "dialog.h"
 #include <QApplication>
 
+//za tastere sa DVK
 #define DEBOUNCE_TIME 100
-
-//Stylesheets
-#define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:turquoise} \
-                QTableWidget[colorScheme=green]::item{selection-background-color:magenta} \
-                QTableWidget[colorScheme=red]::item{selection-background-color:cyan}"
-#define DIALOGSS "Dialog[colorScheme=blue]{background:rgb(20, 170, 255)} \
-                Dialog[colorScheme=green]{background:green} \
-                Dialog[colorScheme=red]{background:red}"
-#define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: skyblue;} \
-                    QGroupBox[colorScheme=green] {background-color: rgb(152, 251, 152);} \
+//Stylesheets za boje
+#define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:rgb(51, 151, 213);} \
+                QTableWidget[colorScheme=green]::item{selection-background-color:rgb(0, 170, 43);} \
+                QTableWidget[colorScheme=red]::item{selection-background-color:rgb(128, 0, 0);}"
+#define DIALOGSS "Dialog[colorScheme=blue]{background:rgb(51, 151, 213);} \
+                Dialog[colorScheme=green]{background:rgb(0, 170, 43)} \
+                Dialog[colorScheme=red]{background:rgb(128, 0, 0)}"
+#define GROUPBOXSS "QGroupBox[colorScheme=blue] {background-color: rgb(109, 180, 208);} \
+                    QGroupBox[colorScheme=green] {background-color: rgb(125, 240, 113);} \
                     QGroupBox[colorScheme=red] {background-color: rgb(235, 60, 60);}"
+
 void btn_int1(void);
 void btn_int2(void);
 void btn_int3(void);
@@ -26,9 +27,12 @@ Dialog *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    //setuj styleSheet za citavu aplikaciju, pa ce on moci da se mijenja preko dynamic properties
+    //unutar aplikacije
     a.setStyleSheet(QObject::tr(DIALOGSS TABLESS GROUPBOXSS));
     int retVal;
 
+    //splashscreen - prikazuje se par sekundi dok se ne pokrene glavni GUI, ne radi preko ssh, probati direktno
     QSplashScreen *splash = new QSplashScreen;
     splash->setPixmap(QPixmap(":/imgs/pi_notes.jpg"));
     splash->show();
@@ -39,16 +43,20 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    //setuj pinove za tastere kao ulazne
     for(int i=21;i<25;i++) { //tasteri su 21,22,23,24
         pinMode (i,INPUT) ;
         pullUpDnControl(i, PUD_UP);
     }
 
+    //registruj funkcije koje se izvrsavaju na pritisak tastera
     wiringPiISR(BTN_1,INT_EDGE_RISING,btn_int1);
     wiringPiISR(BTN_2,INT_EDGE_RISING,btn_int2);
     wiringPiISR(BTN_3,INT_EDGE_RISING,btn_int3);
     wiringPiISR(BTN_4,INT_EDGE_RISING,btn_int4);
 
+    //konstruisi glavni GUI dijalog
+    //moralo je ovako dinamicki posto mi treba globalni pokazivac na njega zbog funkcija za tastere
     w = new Dialog;
 
     w->show();
@@ -61,6 +69,8 @@ int main(int argc, char *argv[])
     return retVal;
 }
 
+
+//funkcije za debouncing tastera i slanje signala sa brojem tastera koji je pritisnut
 void btn_int1() {
     if(!toggle_var_btn1) {
         time1_btn1 = millis();

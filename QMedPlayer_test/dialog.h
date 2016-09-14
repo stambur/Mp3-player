@@ -72,14 +72,15 @@ private:
     int previousIndex;
     QHBoxLayout* myHLayout;
     QString color;
+    Lirc* myLirc;
 
     int barsCount;
     int octaves;
     int sampleRate;
     QVector<double> sample;
     QVector<QProgressBar*> arr;
-    QAudioProbe *probe;
-    FFTCalc *calculator;
+    QAudioProbe* probe;
+    FFTCalc* calculator;
 
     void updateStyleSheets();
 };

@@ -46,7 +46,8 @@ Dialog::Dialog(QWidget *parent) :
     probe = new QAudioProbe(this);
 	qRegisterMetaType< QVector<double> >("QVector<double>");
     myHLayout = new QHBoxLayout();
-    myBox = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Ubacite USB Flash"), QMessageBox::Ok, this);
+    myBox = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Ubacite USB Flash"), QMessageBox::NoButton, this);
+    myBox2 = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Nema mp3 fajlova na USB Flash-u"), QMessageBox::NoButton, this);
     //myBox->show();
     barsCount = 0;
     octaves = 3;
@@ -69,15 +70,6 @@ Dialog::Dialog(QWidget *parent) :
 
     ui->tableWidget->setColumnCount(3);
     this->loadPlaylist();
-
-    myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
-    myPlayer->playlist()->setCurrentIndex(0);
-    connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
-    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
-    connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
-    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
-    connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
-
 
     //inicijalizacija elemenata GUI-a
     ui->label->setText(tr("0:00"));
@@ -109,9 +101,7 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
-    ui->tableWidget_2->setAlternatingRowColors(true);
 
-    probe->setSource(myPlayer);
     this->updateStyleSheets();
     QTimer *myTimer2 = new QTimer(this);
     connect(myTimer2,SIGNAL(timeout()),this,SLOT(timerSlot()));
@@ -128,6 +118,9 @@ Dialog::~Dialog()
 void Dialog::timerSlot() {
     if(usbPath() == NULL) {
         if(usbFlag) {
+            if(myBox2->isVisible()) {
+                myBox2->accept();
+            }
             usbFlag = 0;
             myPlayer->stop();
             refreshFlag = 1;
@@ -157,52 +150,77 @@ void Dialog::loadPlaylist() {
     }
     QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
     QDir dir(directory);
-    QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
+    //QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
+    QDirIterator it(dir.path(), QStringList() << "*.mp3", QDir::Files, QDirIterator::Subdirectories);
+//    while (it.hasNext())
+//        qDebug() << it.next();
     //qDebug() << "Mp3 fajlovi:" << files;
     QList<QMediaContent> content;
+    QString f;
+    //if(!files.isEmpty()) {
+    if(it.hasNext()) {
+        if(myBox2->isVisible()) {
+            myBox2->accept();
+        }
 
-    for(const QString& f:files)
-    {
-        content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
-        TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
-        ui->tableWidget->insertRow(count);
-        ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
-        ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
-        ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
-                    QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
-        count++;
+        //for(const QString& f:files)
+        while(it.hasNext())
+        {
+            f = it.next();
+            content.push_back(QUrl::fromLocalFile(f));
+            TagLib::FileRef fil(f.toLatin1().data());
+            ui->tableWidget->insertRow(count);
+            ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
+            ui->tableWidget->setItem(count,1,new QTableWidgetItem(it.fileName()));
+            ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
+                        QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
+            count++;
+        }
+
+        //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
+        QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
+        myPlaylist->addMedia(content);
+        myPlayer->setPlaylist(myPlaylist);
+
+        //ovde se postavlja bold italic font(pa se kasnije vraca u standardni), posto ce u tom slucaju
+        //biti najsire kolone, pa da se prema njemu automatski podesi sirina
+        QFont tempFont = ui->tableWidget->item(0,0)->font();
+        tempFont.setBold(true);
+        tempFont.setItalic(true);
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            ui->tableWidget->item(i,2)->setFont(tempFont);
+        }
+
+        ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
+        ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
+        ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+        tempFont.setBold(false);
+        tempFont.setItalic(false);
+
+        for(int i=0; i<ui->tableWidget->rowCount(); i++) {
+            ui->tableWidget->item(i,2)->setFont(tempFont);
+        }
+
+        ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
+
+        myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+        myPlayer->playlist()->setCurrentIndex(0);
+        connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
+        connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
+        connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
+        connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
+        connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
+        probe->setSource(myPlayer);
     }
-
-    //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
-    QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
-    myPlaylist->addMedia(content);
-    myPlayer->setPlaylist(myPlaylist);
-
-    //ovde se postavlja bold italic font(pa se kasnije vraca u standardni), posto ce u tom slucaju
-    //biti najsire kolone, pa da se prema njemu automatski podesi sirina
-    QFont tempFont = ui->tableWidget->item(0,0)->font();
-    tempFont.setBold(true);
-    tempFont.setItalic(true);
-    for(int i=0; i<ui->tableWidget->rowCount(); i++) {
-        ui->tableWidget->item(i,2)->setFont(tempFont);
+    else {
+        myBox2->show();
+        QCoreApplication::processEvents();
     }
-
-    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
-    ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    ui->tableWidget->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    tempFont.setBold(false);
-    tempFont.setItalic(false);
-
-    for(int i=0; i<ui->tableWidget->rowCount(); i++) {
-        ui->tableWidget->item(i,2)->setFont(tempFont);
-    }
-
-    ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
-
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     ui->tableWidget->setCurrentCell(0,1);
+
 }
 
 //duration je trajanje pjesme u milisekundama
@@ -309,7 +327,7 @@ void Dialog::onSongChanged(QMediaContent song) {
 
 //prepoznavanje koda sa daljinskog
 void Dialog::handleKey(const QString& key) {
-    if(!myBox->isVisible()) {
+    if(!myBox->isVisible() && !myBox2->isVisible()) {
         if(key == tr("KEY_PLAY")) {
             //ovo dugme ima funkciju play/pause
             switch(myPlayer->state()) {

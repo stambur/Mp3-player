@@ -74,6 +74,7 @@ private:
     int previousIndex;
     QHBoxLayout* myHLayout;
     QMessageBox* myBox;
+    QMessageBox* myBox2;
     QString color;
     Lirc* myLirc;
     bool usbFlag;

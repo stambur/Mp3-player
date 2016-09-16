@@ -27,16 +27,26 @@ Dialog *w;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    QMessageBox meinBox(QMessageBox::Critical,"Greška","Ubacite USB Flash",QMessageBox::NoButton);
+//    if(usbPath()==NULL) {
+//        meinBox.show();
+//        while(usbPath() == NULL) {
+//            a.processEvents();
+//        }
+//    }
+//    meinBox.accept();
     //setuj styleSheet za citavu aplikaciju, pa ce on moci da se mijenja preko dynamic properties
     //unutar aplikacije
     a.setStyleSheet(QObject::tr(DIALOGSS TABLESS GROUPBOXSS));
     int retVal;
 
-    //splashscreen - prikazuje se par sekundi dok se ne pokrene glavni GUI, ne radi preko ssh, probati direktno
+    //splashscreen - prikazuje se par sekundi dok se ne pokrene glavni GUI
     QSplashScreen *splash = new QSplashScreen;
     splash->setPixmap(QPixmap(":/imgs/pi_notes.jpg"));
     splash->show();
-    //splash->showMessage(QObject::tr("Setting up wiringPi..."), Qt::AlignBottom, Qt::magenta);
+    //a.processEvents();
+    splash->showMessage(QObject::tr("Setting up..."), Qt::AlignBottom, Qt::magenta);
+    a.processEvents();
 
     if (wiringPiSetup() < 0) {
         fprintf (stderr, "Unable to open serial device: %s\n", strerror (errno));
@@ -54,6 +64,14 @@ int main(int argc, char *argv[])
     wiringPiISR(BTN_2,INT_EDGE_RISING,btn_int2);
     wiringPiISR(BTN_3,INT_EDGE_RISING,btn_int3);
     wiringPiISR(BTN_4,INT_EDGE_RISING,btn_int4);
+
+    if(usbPath()==NULL) {
+        meinBox.show();
+        while(usbPath() == NULL) {
+            a.processEvents();
+        }
+    }
+    meinBox.accept();
 
     //konstruisi glavni GUI dijalog
     //moralo je ovako dinamicki posto mi treba globalni pokazivac na njega zbog funkcija za tastere

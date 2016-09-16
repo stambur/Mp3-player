@@ -36,6 +36,8 @@ Dialog::Dialog(QWidget *parent) :
     //inicijalizacija clanova klase
 	scrollCounter = 0;
     lcdMode = 0;
+    usbFlag = 1;
+    refreshFlag = 0;
     previousIndex = 0;
     sampleRate = 44100;
     color = tr("blue");
@@ -44,6 +46,8 @@ Dialog::Dialog(QWidget *parent) :
     probe = new QAudioProbe(this);
 	qRegisterMetaType< QVector<double> >("QVector<double>");
     myHLayout = new QHBoxLayout();
+    myBox = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Ubacite USB Flash"), QMessageBox::Ok, this);
+    //myBox->show();
     barsCount = 0;
     octaves = 3;
     myPlayer = new QMediaPlayer(this);
@@ -63,31 +67,9 @@ Dialog::Dialog(QWidget *parent) :
     connect(myTimer, SIGNAL(timeout()), this, SLOT(onEverySecond()));
 	myTimer->start(1000);
 
-    //preuzimanje putanja fajlova sa USB-a i popunjavanje plejliste u GUI-u
     ui->tableWidget->setColumnCount(3);
-	int count = 0;
+    this->loadPlaylist();
 
-    QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
-    QDir dir(directory);
-	QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
-	QList<QMediaContent> content;
-
-	for(const QString& f:files)
-    {
-		content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
-        TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
-		ui->tableWidget->insertRow(count);
-        ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
-        ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
-        ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
-                    QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
-        count++;
-	}
-
-    //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
-    QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
-    myPlaylist->addMedia(content);
-    myPlayer->setPlaylist(myPlaylist);
     myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
     myPlayer->playlist()->setCurrentIndex(0);
     connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
@@ -95,6 +77,7 @@ Dialog::Dialog(QWidget *parent) :
     connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
     connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
     connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
+
 
     //inicijalizacija elemenata GUI-a
     ui->label->setText(tr("0:00"));
@@ -128,15 +111,81 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget_2->setAlternatingRowColors(true);
 
+    probe->setSource(myPlayer);
+    this->updateStyleSheets();
+    QTimer *myTimer2 = new QTimer(this);
+    connect(myTimer2,SIGNAL(timeout()),this,SLOT(timerSlot()));
+    myTimer2->start(100);
+    qDebug() << "Konstruisao";
+}
+
+Dialog::~Dialog()
+{
+	lcdClear(lcd_h);
+	delete ui;
+}
+
+void Dialog::timerSlot() {
+    if(usbPath() == NULL) {
+        if(usbFlag) {
+            usbFlag = 0;
+            myPlayer->stop();
+            refreshFlag = 1;
+            myBox->show();
+            //ui->listWidget->currentItem()->setText(tr("Ubacite USB Flash!"));
+            QCoreApplication::processEvents();
+        }
+    }
+    else {
+        if(!usbFlag) {
+            this->loadPlaylist();
+            myBox->accept();
+            usbFlag = 1;
+            myPlayer->setPosition(0);
+            previousIndex = 0;
+            refreshFlag = 0;
+            //ui->listWidget->currentItem()->setText(tr("Plejer je zaustavljen"));
+        }
+    }
+}
+
+//preuzimanje putanja fajlova sa USB-a i popunjavanje plejliste u GUI-u
+void Dialog::loadPlaylist() {
+    int count = 0;
+    if(ui->tableWidget->rowCount()) {
+        ui->tableWidget->setRowCount(0);
+    }
+    QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
+    QDir dir(directory);
+    QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
+    //qDebug() << "Mp3 fajlovi:" << files;
+    QList<QMediaContent> content;
+
+    for(const QString& f:files)
+    {
+        content.push_back(QUrl::fromLocalFile(dir.path()+ '/' + f));
+        TagLib::FileRef fil((dir.path()+ '/' + f).toLatin1().data());
+        ui->tableWidget->insertRow(count);
+        ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
+        ui->tableWidget->setItem(count,1,new QTableWidgetItem(f));
+        ui->tableWidget->setItem(count,2,new QTableWidgetItem(QString::number(fil.audioProperties()->length() / 60) + ':' +
+                    QString::number(fil.audioProperties()->length() % 60).rightJustified(2,'0')));
+        count++;
+    }
+
+    //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
+    QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
+    myPlaylist->addMedia(content);
+    myPlayer->setPlaylist(myPlaylist);
+
     //ovde se postavlja bold italic font(pa se kasnije vraca u standardni), posto ce u tom slucaju
     //biti najsire kolone, pa da se prema njemu automatski podesi sirina
     QFont tempFont = ui->tableWidget->item(0,0)->font();
     tempFont.setBold(true);
     tempFont.setItalic(true);
-
     for(int i=0; i<ui->tableWidget->rowCount(); i++) {
         ui->tableWidget->item(i,2)->setFont(tempFont);
-    }   
+    }
 
     ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
     ui->tableWidget->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -154,15 +203,6 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(2,QHeaderView::Fixed);
     ui->tableWidget->setCurrentCell(0,1);
-
-    probe->setSource(myPlayer);
-    this->updateStyleSheets();
-}
-
-Dialog::~Dialog()
-{
-	lcdClear(lcd_h);
-	delete ui;
 }
 
 //duration je trajanje pjesme u milisekundama
@@ -190,9 +230,10 @@ void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
         f.setItalic(false);
         f.setBold(false);
 
-        if(myPlayer->playlist()->currentIndex() != -1)
-        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-            ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
+        if(myPlayer->playlist()->currentIndex() != -1) {
+            for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+                ui->tableWidget->item(myPlayer->playlist()->currentIndex(),i)->setFont(f);
+            }
         }
 
         ui->label->setText(tr("0:00"));
@@ -209,221 +250,232 @@ void Dialog::onPlayerStateChanged(QMediaPlayer::State newState) {
 void Dialog::onSongChanged(QMediaContent song) {
     QFont f;
     //kod nekih rezima rada currentIndex bude -1 u odredjenim situacijama, pa samo zaustavi sve u tom slucaju
-    if(myPlayer->playlist()->currentIndex() >= 0) {
-        int current = myPlayer->playlist()->currentIndex();
 
-        //podesi font bold italic za onu pjesmu koja trenutno ide, a vrati font na standardni za prethodnu
-        f = ui->tableWidget->item(current,1)->font();
-        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-            ui->tableWidget->item(previousIndex,i)->setFont(f);
-            f.setItalic(true);
-            f.setBold(true);
-            ui->tableWidget->item(current,i)->setFont(f);
-            f.setItalic(false);
-            f.setBold(false);
-        }
+    if(!refreshFlag) {
+        if(myPlayer->playlist()->currentIndex() >= 0) {
+            int current = myPlayer->playlist()->currentIndex();
 
-        ui->label->setText(ui->tableWidget->item(current,2)->text());
-        previousIndex = current;
+            //podesi font bold italic za onu pjesmu koja trenutno ide, a vrati font na standardni za prethodnu
+            f = ui->tableWidget->item(current,1)->font();
+            for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+                ui->tableWidget->item(previousIndex,i)->setFont(f);
+                f.setItalic(true);
+                f.setBold(true);
+                ui->tableWidget->item(current,i)->setFont(f);
+                f.setItalic(false);
+                f.setBold(false);
+            }
 
-        //progres barove koji prikazuju spektar vrati na minimum
-        for(int i=0; i<barsCount; i++) {
-            arr[i]->setValue(arr[i]->minimum());
-        }
+            ui->label->setText(ui->tableWidget->item(current,2)->text());
+            previousIndex = current;
 
-        //popuni tabelu sa informacijama o tekucoj pjesmi
-        TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
-        sampleRate = file.audioProperties()->sampleRate();
+            //progres barove koji prikazuju spektar vrati na minimum
+            for(int i=0; i<barsCount; i++) {
+                arr[i]->setValue(arr[i]->minimum());
+            }
 
-        currentSong = song.canonicalUrl().fileName();
+            //popuni tabelu sa informacijama o tekucoj pjesmi
+            TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
+            sampleRate = file.audioProperties()->sampleRate();
 
-        ui->listWidget->currentItem()->setText(currentSong);
-        ui->listWidget->horizontalScrollBar()->setValue(0);
-        ui->tableWidget_2->item(0,1)->setText(QString::fromStdString(file.tag()->title().to8Bit()));
-        ui->tableWidget_2->item(1,1)->setText(QString::fromStdString(file.tag()->artist().to8Bit()));
-        ui->tableWidget_2->item(2,1)->setText(QString::fromStdString(file.tag()->genre().to8Bit()));
-        ui->tableWidget_2->item(3,1)->setText(QString::number(file.tag()->year()));
-        ui->tableWidget_2->item(4,1)->setText(QString::number(file.audioProperties()->bitrate()));
-        ui->tableWidget_2->item(5,1)->setText(QString::number(sampleRate));
-        for(int i=0; i<6; i++) {
-            if((ui->tableWidget_2->item(i,1)->text().isEmpty()) || (ui->tableWidget_2->item(i,1)->text()==QString::number(0))) {
-                ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
+            currentSong = song.canonicalUrl().fileName();
+
+            ui->listWidget->currentItem()->setText(currentSong);
+            ui->listWidget->horizontalScrollBar()->setValue(0);
+            ui->tableWidget_2->item(0,1)->setText(QString::fromStdString(file.tag()->title().to8Bit()));
+            ui->tableWidget_2->item(1,1)->setText(QString::fromStdString(file.tag()->artist().to8Bit()));
+            ui->tableWidget_2->item(2,1)->setText(QString::fromStdString(file.tag()->genre().to8Bit()));
+            ui->tableWidget_2->item(3,1)->setText(QString::number(file.tag()->year()));
+            ui->tableWidget_2->item(4,1)->setText(QString::number(file.audioProperties()->bitrate()));
+            ui->tableWidget_2->item(5,1)->setText(QString::number(sampleRate));
+            for(int i=0; i<6; i++) {
+                if((ui->tableWidget_2->item(i,1)->text().isEmpty()) || (ui->tableWidget_2->item(i,1)->text()==QString::number(0))) {
+                    ui->tableWidget_2->item(i,1)->setText(tr("N/A"));
+                }
             }
         }
-    }
-    else {
-        //vrati font i stopiraj plejer, slot onStateChanged ce onda odraditi ostalo
-        f = ui->tableWidget->item(0,1)->font();
-        f.setBold(false);
-        f.setItalic(false);
-        for(int i=0; i<ui->tableWidget->columnCount(); i++) {
-            ui->tableWidget->item(previousIndex,i)->setFont(f);
+        else {
+            //vrati font i stopiraj plejer, slot onStateChanged ce onda odraditi ostalo
+            f = ui->tableWidget->item(0,1)->font();
+            f.setBold(false);
+            f.setItalic(false);
+            for(int i=0; i<ui->tableWidget->columnCount(); i++) {
+                ui->tableWidget->item(previousIndex,i)->setFont(f);
+            }
+            myPlayer->stop();
         }
-        myPlayer->stop();
     }
 }
 
 //prepoznavanje koda sa daljinskog
 void Dialog::handleKey(const QString& key) {
-	if(key == tr("KEY_PLAY")) {
-        //ovo dugme ima funkciju play/pause
-		switch(myPlayer->state()) {
-            case QMediaPlayer::StoppedState:
-                myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
-				myPlayer->play();
-                lcdClear(lcd_h);
-                emit myPlayer->currentMediaChanged(myPlayer->currentMedia());
-				break;
-			case QMediaPlayer::PausedState:
-                if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
-                    myPlayer->play();
-                }
-                else {
+    if(!myBox->isVisible()) {
+        if(key == tr("KEY_PLAY")) {
+            //ovo dugme ima funkciju play/pause
+            switch(myPlayer->state()) {
+                case QMediaPlayer::StoppedState:
                     myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
                     myPlayer->play();
-                }
-				break;
-			case QMediaPlayer::PlayingState:
-                if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
-                    myPlayer->pause();
-                }
-                else {
-                    myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
-                    myPlayer->play();
-                }
-				break;
+                    lcdClear(lcd_h);
+                    emit myPlayer->currentMediaChanged(myPlayer->currentMedia());
+                    break;
+                case QMediaPlayer::PausedState:
+                    if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
+                        myPlayer->play();
+                    }
+                    else {
+                        myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+                        myPlayer->play();
+                    }
+                    break;
+                case QMediaPlayer::PlayingState:
+                    if(myPlayer->playlist()->currentIndex() == ui->tableWidget->currentRow()) {
+                        myPlayer->pause();
+                    }
+                    else {
+                        myPlayer->playlist()->setCurrentIndex(ui->tableWidget->currentRow());
+                        myPlayer->play();
+                    }
+                    break;
+            }
         }
-	}
-	else if(key == tr("KEY_CH")) {
-        //dugme stop
-        myPlayer->stop();
-	}
-	else if(key == tr("KEY_NEXT")) {
-        //dugme next
-		scrollCounter = 0;
-        lcdClear(lcd_h);
-        if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
-            //za odredjene rezime rada koji su aktivni kad su ovi radio-button-i selektovani, po default-u
-            //se ne ide uobicajeno na sledecu pjesmu, pa ispravi to
-            myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
+        else if(key == tr("KEY_CH")) {
+            //dugme stop
+            myPlayer->stop();
         }
-        else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
-            myPlayer->playlist()->setCurrentIndex(0);
-        }
-        else {
-            myPlayer->playlist()->next();
-        }
-		myPlayer->play();
-	}
-	else if(key == tr("KEY_PREVIOUS")) {
-        //dugme previous
-		scrollCounter = 0;
-		lcdClear(lcd_h);
-        if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
-            if(myPlayer->playlist()->currentIndex()) {
-                myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
+        else if(key == tr("KEY_NEXT")) {
+            //dugme next
+            scrollCounter = 0;
+            lcdClear(lcd_h);
+            if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
+                //za odredjene rezime rada koji su aktivni kad su ovi radio-button-i selektovani, po default-u
+                //se ne ide uobicajeno na sledecu pjesmu, pa ispravi to
+                myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
+            }
+            else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
+                myPlayer->playlist()->setCurrentIndex(0);
             }
             else {
+                myPlayer->playlist()->next();
+            }
+            myPlayer->play();
+        }
+        else if(key == tr("KEY_PREVIOUS")) {
+            //dugme previous
+            scrollCounter = 0;
+            lcdClear(lcd_h);
+            if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
+                if(myPlayer->playlist()->currentIndex()) {
+                    myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
+                }
+                else {
+                    myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
+                }
+            }
+            else if(myPlayer->playlist()->currentIndex()==0) {
                 myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
             }
+            else {
+                myPlayer->playlist()->previous();
+            }
+            myPlayer->play();
         }
-        else if(myPlayer->playlist()->currentIndex()==0) {
-			myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
-		}
-		else {
-			myPlayer->playlist()->previous();
-		}
-		myPlayer->play();
-	}
-    else if(key == tr("KEY_CH-")) {
-        //dugme za biranje rezima rada, povezi sa button-ima na GUI-u i setuj sta treba
-        if(ui->radioButton_4->isChecked()) {
-            ui->radioButton_5->setChecked(true);
-            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
+        else if(key == tr("KEY_CH-")) {
+            //dugme za biranje rezima rada, povezi sa button-ima na GUI-u i setuj sta treba
+            if(ui->radioButton_4->isChecked()) {
+                ui->radioButton_5->setChecked(true);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
+            }
+            else if(ui->radioButton_5->isChecked()) {
+                ui->radioButton_6->setChecked(true);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemOnce);
+            }
+            else if(ui->radioButton_6->isChecked()) {
+                ui->radioButton_7->setChecked(true);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemInLoop);
+            }
+            else if(ui->radioButton_7->isChecked()) {
+                ui->radioButton_8->setChecked(true);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Random);
+            }
+            else {
+                ui->radioButton_4->setChecked(true);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+            }
         }
-        else if(ui->radioButton_5->isChecked()) {
-            ui->radioButton_6->setChecked(true);
-            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemOnce);
+        else if(key == tr("KEY_CH+")) {
+            //dugme za biranje kolor seme, povezi sa GUI-em i pozovi odgovarajuce funkcije
+            if(ui->radioButton_9->isChecked()) {
+                ui->radioButton_10->setChecked(true);
+                ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
+                ui->label_3->setScaledContents(true);
+                color = tr("green");
+                this->updateStyleSheets();
+            }
+            else if(ui->radioButton_10->isChecked()) {
+                ui->radioButton_11->setChecked(true);
+                ui->label_3->setPixmap(tr(":/imgs/VolumeNormalRed.png"));
+                ui->label_3->setScaledContents(true);
+                color = tr("red");
+                this->updateStyleSheets();
+            }
+            else {
+                ui->radioButton_9->setChecked(true);
+                ui->label_3->setPixmap(tr(":/imgs/VolumeNormalBlue.png"));
+                ui->label_3->setScaledContents(true);
+                color = tr("blue");
+                this->updateStyleSheets();
+            }
         }
-        else if(ui->radioButton_6->isChecked()) {
-            ui->radioButton_7->setChecked(true);
-            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::CurrentItemInLoop);
+        else if(key == tr("KEY_UP")) {
+            //dugme volume up
+            myPlayer->setVolume(myPlayer->volume() + 5);
         }
-        else if(ui->radioButton_7->isChecked()) {
-            ui->radioButton_8->setChecked(true);
-            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Random);
+        else if(key == tr("KEY_DOWN")) {
+            //dugme volume down
+            myPlayer->setVolume(myPlayer->volume() - 5);
         }
-        else {
-            ui->radioButton_4->setChecked(true);
-            myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+        else if(key == tr("KEY_EQ")) {
+            //dugme za biranje prikaza spektra, setuj promjenljivu, thread ce odraditi svoje
+            if(ui->radioButton_3->isChecked()) {
+                ui->radioButton_2->setChecked(true);
+                octaves = 2;
+            }
+            else if(ui->radioButton_2->isChecked()) {
+                ui->radioButton->setChecked(true);
+                octaves = 1;
+            }
+            else {
+                ui->radioButton_3->setChecked(true);
+                octaves = 3;
+            }
         }
-	}
-    else if(key == tr("KEY_CH+")) {
-        //dugme za biranje kolor seme, povezi sa GUI-em i pozovi odgovarajuce funkcije
-        if(ui->radioButton_9->isChecked()) {
-            ui->radioButton_10->setChecked(true);
-            ui->label_3->setPixmap(tr(":/imgs/VolumeNormal.png"));
-            ui->label_3->setScaledContents(true);
-            color = tr("green");
-            this->updateStyleSheets();
+        else if(key == tr("KEY_5")) {
+            //dugme up, za kretanje po plejlisti
+            ui->tableWidget->setCurrentCell((ui->tableWidget->currentRow()+1)%ui->tableWidget->rowCount(),1);
         }
-        else if(ui->radioButton_10->isChecked()) {
-            ui->radioButton_11->setChecked(true);
-            ui->label_3->setPixmap(tr(":/imgs/VolumeNormalRed.png"));
-            ui->label_3->setScaledContents(true);
-            color = tr("red");
-            this->updateStyleSheets();
+        else if(key == tr("KEY_2")) {
+            //dugme down, za kretanje po plejlisti
+            if(ui->tableWidget->currentRow()) {
+                ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1,1);
+            }
+            else {
+                ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
+            }
         }
-        else {
-            ui->radioButton_9->setChecked(true);
-            ui->label_3->setPixmap(tr(":/imgs/VolumeNormalBlue.png"));
-            ui->label_3->setScaledContents(true);
-            color = tr("blue");
-            this->updateStyleSheets();
+        else if(key == tr("KEY_200+")) {
+//            if(myBox->isVisible()) {
+//                myBox->accept();
+//                usbFlag = 1;
+//            }
         }
-	}
-	else if(key == tr("KEY_UP")) {
-        //dugme volume up
-		myPlayer->setVolume(myPlayer->volume() + 5);
-	}
-	else if(key == tr("KEY_DOWN")) {
-        //dugme volume down
-		myPlayer->setVolume(myPlayer->volume() - 5);
-	}
-	else if(key == tr("KEY_EQ")) {
-        //dugme za biranje prikaza spektra, setuj promjenljivu, thread ce odraditi svoje
-        if(ui->radioButton_3->isChecked()) {
-			ui->radioButton_2->setChecked(true);
-			octaves = 2;
-		}
-		else if(ui->radioButton_2->isChecked()) {
-            ui->radioButton->setChecked(true);
-            octaves = 1;
-		}
-		else {
-            ui->radioButton_3->setChecked(true);
-            octaves = 3;
-		}
-	}
-    else if(key == tr("KEY_5")) {
-        //dugme up, za kretanje po plejlisti
-        ui->tableWidget->setCurrentCell((ui->tableWidget->currentRow()+1)%ui->tableWidget->rowCount(),1);
-    }
-    else if(key == tr("KEY_2")) {
-        //dugme down, za kretanje po plejlisti
-        if(ui->tableWidget->currentRow()) {
-            ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1,1);
+        else if(key == tr("KEY_100+")) {
+            //dugme za izlazak iz programa
+            myPlayer->stop();
+            lcdClear(lcd_h);
+            delete ui;
+            exit(0);
         }
-        else {
-            ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
-        }
-    }
-    else if(key == tr("KEY_100+")){
-        //dugme za izlazak iz programa
-		myPlayer->stop();
-		lcdClear(lcd_h);
-		delete ui;
-		exit(0);
     }
 }
 

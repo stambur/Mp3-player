@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QSplashScreen>
+#include <QMessageBox>
 #include "lirc.h"
 #include "getpath.h"
 #include <taglib/tag.h>
@@ -61,6 +62,7 @@ public slots:
 
     void processBuffer(QAudioBuffer);
     void loadSamples(QVector<double>);
+    void timerSlot();
 
 private:
     Ui::Dialog *ui;
@@ -71,8 +73,11 @@ private:
     uchar lcdMode;
     int previousIndex;
     QHBoxLayout* myHLayout;
+    QMessageBox* myBox;
     QString color;
     Lirc* myLirc;
+    bool usbFlag;
+    bool refreshFlag;
 
     int barsCount;
     int octaves;
@@ -83,6 +88,7 @@ private:
     FFTCalc* calculator;
 
     void updateStyleSheets();
+    void loadPlaylist();
 };
 
 #endif // DIALOG_H

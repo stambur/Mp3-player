@@ -28,7 +28,7 @@ Dialog::Dialog(QWidget *parent) :
     lcdPosition(lcd_h,0,0);
     lcdPutchar(lcd_h,0xFF);
     lcdPutchar(lcd_h,0xFF);
-    lcdPrintf(lcd_h,"Play stopped");
+    lcdPrintf(lcd_h,"Zaustavljeno");
     for(int i=0; i<18; i++) {
         lcdPutchar(lcd_h,0xFF);
     }
@@ -63,13 +63,22 @@ Dialog::Dialog(QWidget *parent) :
     connect(myLirc,SIGNAL(key_event(QString)),this,SLOT(handleKey(QString)));
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 
-    //deklarisanje i inicijalizacija tajmera na 1 sekundu
+    //deklarisanje i inicijalizacija tajmera na 1 sekundu, za azuriranje LCD
 	QTimer *myTimer = new QTimer(this);
     connect(myTimer, SIGNAL(timeout()), this, SLOT(onEverySecond()));
 	myTimer->start(1000);
 
+    //ucitavanje plejliste
     ui->tableWidget->setColumnCount(3);
     this->loadPlaylist();
+
+    //povezivanje odgovarajucih signala i slotova za plejer
+    connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
+    connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
+    connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
+    connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
+    connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
+    probe->setSource(myPlayer);
 
     //inicijalizacija elemenata GUI-a
     ui->label->setText(tr("0:00"));
@@ -102,11 +111,13 @@ Dialog::Dialog(QWidget *parent) :
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Fixed);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(1,QHeaderView::Stretch);
 
+    //podesi pocetnu temu
     this->updateStyleSheets();
+
+    // Tajmer za provjeru da li je USB Flash dostupan
     QTimer *myTimer2 = new QTimer(this);
     connect(myTimer2,SIGNAL(timeout()),this,SLOT(timerSlot()));
     myTimer2->start(100);
-    qDebug() << "Konstruisao";
 }
 
 Dialog::~Dialog()
@@ -115,6 +126,7 @@ Dialog::~Dialog()
 	delete ui;
 }
 
+// ovde se provjerava da li je USB Flash tu, ako nije prikazuje se message box
 void Dialog::timerSlot() {
     if(usbPath() == NULL) {
         if(usbFlag) {
@@ -124,8 +136,14 @@ void Dialog::timerSlot() {
             usbFlag = 0;
             myPlayer->stop();
             refreshFlag = 1;
+            lcdClear(lcd_h);
+            lcdPosition(lcd_h,0,0);
+            lcdPutchar(lcd_h,0xFF);
+            lcdPrintf(lcd_h,"Nedostupan USB");
+            for(int i=0; i<17; i++) {
+                lcdPutchar(lcd_h,0xFF);
+            }
             myBox->show();
-            //ui->listWidget->currentItem()->setText(tr("Ubacite USB Flash!"));
             QCoreApplication::processEvents();
         }
     }
@@ -137,7 +155,6 @@ void Dialog::timerSlot() {
             myPlayer->setPosition(0);
             previousIndex = 0;
             refreshFlag = 0;
-            //ui->listWidget->currentItem()->setText(tr("Plejer je zaustavljen"));
         }
     }
 }
@@ -150,20 +167,14 @@ void Dialog::loadPlaylist() {
     }
     QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
     QDir dir(directory);
-    //QStringList files = dir.entryList(QStringList() << tr("*.mp3"),QDir::Files);
     QDirIterator it(dir.path(), QStringList() << "*.mp3", QDir::Files, QDirIterator::Subdirectories);
-//    while (it.hasNext())
-//        qDebug() << it.next();
-    //qDebug() << "Mp3 fajlovi:" << files;
     QList<QMediaContent> content;
     QString f;
-    //if(!files.isEmpty()) {
     if(it.hasNext()) {
         if(myBox2->isVisible()) {
             myBox2->accept();
         }
 
-        //for(const QString& f:files)
         while(it.hasNext())
         {
             f = it.next();
@@ -203,16 +214,19 @@ void Dialog::loadPlaylist() {
 
         ui->tableWidget->item(ui->tableWidget->rowCount()-1,0)->setFont(tempFont);
 
-        myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+        // inicijalizacija plejliste
         myPlayer->playlist()->setCurrentIndex(0);
-        connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
-        connect(myPlayer,SIGNAL(durationChanged(qint64)),this,SLOT(onDurationChanged(qint64)));
-        connect(myPlayer,SIGNAL(currentMediaChanged(QMediaContent)),this,SLOT(onSongChanged(QMediaContent)));
-        connect(myPlayer,SIGNAL(positionChanged(qint64)),this,SLOT(onPositionChanged(qint64)));
-        connect(myPlayer,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(onPlayerStateChanged(QMediaPlayer::State)));
-        probe->setSource(myPlayer);
     }
     else {
+        //ako nema fajlova, izbaci gresku
+        lcdClear(lcd_h);
+        lcdPosition(lcd_h,0,0);
+        lcdPutchar(lcd_h,0xFF);
+        lcdPutchar(lcd_h,0xFF);
+        lcdPrintf(lcd_h,"Nema fajlova");
+        for(int i=0; i<18; i++) {
+            lcdPutchar(lcd_h,0xFF);
+        }
         myBox2->show();
         QCoreApplication::processEvents();
     }
@@ -365,8 +379,9 @@ void Dialog::handleKey(const QString& key) {
             //dugme next
             scrollCounter = 0;
             lcdClear(lcd_h);
-            if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
-                //za odredjene rezime rada koji su aktivni kad su ovi radio-button-i selektovani, po default-u
+            if((myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemOnce) ||
+            (myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemInLoop)) {
+                //za odredjene rezime rada po default-u
                 //se ne ide uobicajeno na sledecu pjesmu, pa ispravi to
                 myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
             }
@@ -382,7 +397,8 @@ void Dialog::handleKey(const QString& key) {
             //dugme previous
             scrollCounter = 0;
             lcdClear(lcd_h);
-            if((ui->radioButton_6->isChecked()) || (ui->radioButton_7->isChecked())) {
+            if((myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemOnce) ||
+            (myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemInLoop)) {
                 if(myPlayer->playlist()->currentIndex()) {
                     myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
                 }
@@ -402,7 +418,7 @@ void Dialog::handleKey(const QString& key) {
             //dugme za biranje rezima rada, povezi sa button-ima na GUI-u i setuj sta treba
             if(ui->radioButton_4->isChecked()) {
                 ui->radioButton_5->setChecked(true);
-                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
             }
             else if(ui->radioButton_5->isChecked()) {
                 ui->radioButton_6->setChecked(true);
@@ -418,7 +434,7 @@ void Dialog::handleKey(const QString& key) {
             }
             else {
                 ui->radioButton_4->setChecked(true);
-                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Loop);
+                myPlayer->playlist()->setPlaybackMode(QMediaPlaylist::Sequential);
             }
         }
         else if(key == tr("KEY_CH+")) {
@@ -480,12 +496,6 @@ void Dialog::handleKey(const QString& key) {
             else {
                 ui->tableWidget->setCurrentCell(ui->tableWidget->rowCount()-1,1);
             }
-        }
-        else if(key == tr("KEY_200+")) {
-//            if(myBox->isVisible()) {
-//                myBox->accept();
-//                usbFlag = 1;
-//            }
         }
         else if(key == tr("KEY_100+")) {
             //dugme za izlazak iz programa
@@ -578,65 +588,82 @@ void Dialog::updateStyleSheets() {
 
 //prepoznavanje tastera sa DVK i zadavanje odgovarajucih komandi plejeru
 void Dialog::onHwBtnClicked(int btn) {
-	switch(btn) {
-		case BTN_1: //mode
-			lcdMode ^= 1;
-			lcdClear(lcd_h);
-			break;
-        case BTN_2: //play/pause(mode=0) / stop(mode=1)
-			if(lcdMode) {
-				myPlayer->stop();
-			}
-			else {
-				switch(myPlayer->state()) {
-					case QMediaPlayer::StoppedState:
-						myPlayer->play();
-						lcdClear(lcd_h);
-                        currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
-                        emit myPlayer->currentMediaChanged(myPlayer->currentMedia());
-						break;
-					case QMediaPlayer::PausedState:
-						myPlayer->play();
-						break;
-					case QMediaPlayer::PlayingState:
-						myPlayer->pause();
-						break;
-				}
-			}
-			break;
-        case BTN_3: //prev(mode=0) / vol_down(mode=1)
-			if(lcdMode) {
-				myPlayer->setVolume(myPlayer->volume() - 5);
-			}
-			else {
-				scrollCounter = 0;
-				lcdClear(lcd_h);
-				if(myPlayer->playlist()->currentIndex()==0) {
-					myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
-				}
-				else {
-					myPlayer->playlist()->previous();
-				}
-				myPlayer->play();
-			}
-			break;
-        case BTN_4: //next(mode=0) / vol_up(mode=1)
-			if(lcdMode) {
-				myPlayer->setVolume(myPlayer->volume() + 5);
-			}
-			else {
-				scrollCounter = 0;
+    if(!myBox->isVisible() && !myBox2->isVisible()) {
+        switch(btn) {
+            case BTN_1: //mode
+                lcdMode ^= 1;
                 lcdClear(lcd_h);
-                if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
-                    myPlayer->playlist()->setCurrentIndex(0);
+                break;
+            case BTN_2: //play/pause(mode=0) / stop(mode=1)
+                if(lcdMode) {
+                    myPlayer->stop();
                 }
                 else {
-                    myPlayer->playlist()->next();
+                    switch(myPlayer->state()) {
+                        case QMediaPlayer::StoppedState:
+                            myPlayer->play();
+                            lcdClear(lcd_h);
+                            currentSong = myPlayer->currentMedia().canonicalUrl().fileName();
+                            emit myPlayer->currentMediaChanged(myPlayer->currentMedia());
+                            break;
+                        case QMediaPlayer::PausedState:
+                            myPlayer->play();
+                            break;
+                        case QMediaPlayer::PlayingState:
+                            myPlayer->pause();
+                            break;
+                    }
                 }
-				myPlayer->play();
-			}
-			break;
-	}
+                break;
+            case BTN_3: //prev(mode=0) / vol_down(mode=1)
+                if(lcdMode) {
+                    myPlayer->setVolume(myPlayer->volume() - 5);
+                }
+                else {
+                    scrollCounter = 0;
+                    lcdClear(lcd_h);
+                    if((myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemOnce) ||
+                    (myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemInLoop)) {
+                        if(myPlayer->playlist()->currentIndex()) {
+                            myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->currentIndex()-1);
+                        }
+                        else {
+                            myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
+                        }
+                    }
+                    else if(myPlayer->playlist()->currentIndex()==0) {
+                        myPlayer->playlist()->setCurrentIndex(myPlayer->playlist()->mediaCount()-1);
+                    }
+                    else {
+                        myPlayer->playlist()->previous();
+                    }
+                    myPlayer->play();
+                }
+                break;
+            case BTN_4: //next(mode=0) / vol_up(mode=1)
+                if(lcdMode) {
+                    myPlayer->setVolume(myPlayer->volume() + 5);
+                }
+                else {
+                    scrollCounter = 0;
+                    lcdClear(lcd_h);
+                    if((myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemOnce) ||
+                    (myPlayer->playlist()->playbackMode()==QMediaPlaylist::CurrentItemInLoop)) {
+                        //za odredjene rezime rada po default-u
+                        //se ne ide uobicajeno na sledecu pjesmu, pa ispravi to
+                        myPlayer->playlist()->setCurrentIndex((myPlayer->playlist()->currentIndex()+1)%myPlayer->playlist()->mediaCount());
+                    }
+                    else if(myPlayer->playlist()->currentIndex() == myPlayer->playlist()->mediaCount()-1) {
+                        myPlayer->playlist()->setCurrentIndex(0);
+                    }
+                    else {
+                        myPlayer->playlist()->next();
+                    }
+                    myPlayer->play();
+                }
+                break;
+        }
+    }
 }
 
 //funkcija koja se izvrsava na svaki tik tajmera
@@ -661,7 +688,7 @@ void Dialog::onEverySecond() {
 						QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
 		}
 		else {
-			lcdPrintf(lcd_h,"Set volume:");
+            lcdPrintf(lcd_h,"Podesi zvuk");
 		}
 
 		lcdPosition(lcd_h,12,1);
@@ -685,14 +712,16 @@ void Dialog::onEverySecond() {
         }
 	}
 	else {
-		lcdClear(lcd_h);
-		lcdPosition(lcd_h,0,0);
-		lcdPutchar(lcd_h,0xFF);
-		lcdPutchar(lcd_h,0xFF);
-		lcdPrintf(lcd_h,"Play stopped");
-		for(int i=0; i<18; i++) {
-			lcdPutchar(lcd_h,0xFF);
-		}
+        if(!myBox->isVisible() && !myBox2->isVisible()) {
+            lcdClear(lcd_h);
+            lcdPosition(lcd_h,0,0);
+            lcdPutchar(lcd_h,0xFF);
+            lcdPutchar(lcd_h,0xFF);
+            lcdPrintf(lcd_h,"Zaustavljeno");
+            for(int i=0; i<18; i++) {
+                lcdPutchar(lcd_h,0xFF);
+            }
+        }
 	}
 }
 

@@ -5,22 +5,22 @@
 #define MAXBAR 0
 
 Dialog::Dialog(QWidget *parent) :
-	QDialog(parent),
-	ui(new Ui::Dialog)
+    QDialog(parent),
+    ui(new Ui::Dialog)
 {
-	ui->setupUi(this);
+    ui->setupUi(this);
 
     //inicijalizacija LCD
-	lcd_h = lcdInit(2, 16, 4, RS, EN, D0, D1, D2, D3, D0, D1, D2, D3);
+    lcd_h = lcdInit(2, 16, 4, RS, EN, D0, D1, D2, D3, D0, D1, D2, D3);
 
-	if (lcd_h < 0) {
-		fprintf (stderr, "lcdInit failed\n") ;
-	}
+    if (lcd_h < 0) {
+        fprintf (stderr, "lcdInit failed\n") ;
+    }
 
     //karakteri za LCD
     uchar vol[8] = {0b00001, 0b00011, 0b11011, 0b11011, 0b11011, 0b00011, 0b00001}; //karakter za jacinu zvuka
     uchar pse[8] = {0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011, 0b11011}; //karakter za pauzu
-	lcdCharDef(lcd_h, 0, vol);
+    lcdCharDef(lcd_h, 0, vol);
     lcdCharDef(lcd_h, 1, pse);
 
     //podesavanje pocetnog prikaza na LCD
@@ -34,17 +34,17 @@ Dialog::Dialog(QWidget *parent) :
     }
 
     //inicijalizacija clanova klase
-	scrollCounter = 0;
+    scrollCounter = 0;
     lcdMode = 0;
     usbFlag = 1;
     refreshFlag = 0;
     previousIndex = 0;
     sampleRate = 44100;
     color = tr("blue");
-	sample.resize(SPECSIZE);
+    sample.resize(SPECSIZE);
     calculator = new FFTCalc(this);
     probe = new QAudioProbe(this);
-	qRegisterMetaType< QVector<double> >("QVector<double>");
+    qRegisterMetaType< QVector<double> >("QVector<double>");
     myHLayout = new QHBoxLayout();
     myBox = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Ubacite USB Flash"), QMessageBox::NoButton, this);
     myBox2 = new QMessageBox(QMessageBox::Critical, tr("Greška"), tr("Nema mp3 fajlova na USB Flash-u"), QMessageBox::NoButton, this);
@@ -64,13 +64,15 @@ Dialog::Dialog(QWidget *parent) :
     connect(this,SIGNAL(hw_btn_clicked(int)),this,SLOT(onHwBtnClicked(int)));
 
     //deklarisanje i inicijalizacija tajmera na 1 sekundu, za azuriranje LCD
-	QTimer *myTimer = new QTimer(this);
+    QTimer *myTimer = new QTimer(this);
     connect(myTimer, SIGNAL(timeout()), this, SLOT(onEverySecond()));
-	myTimer->start(1000);
+    myTimer->start(1000);
 
     //ucitavanje plejliste
     ui->tableWidget->setColumnCount(3);
-    this->loadPlaylist();
+    if(usbPath() != NULL) {
+        this->loadPlaylist();
+    }
 
     //povezivanje odgovarajucih signala i slotova za plejer
     connect(myPlayer,SIGNAL(volumeChanged(int)),ui->progressBar,SLOT(setValue(int)));
@@ -114,7 +116,7 @@ Dialog::Dialog(QWidget *parent) :
     //podesi pocetnu temu
     this->updateStyleSheets();
 
-    // Tajmer za provjeru da li je USB Flash dostupan
+    //tajmer za provjeru da li je USB Flash dostupan
     QTimer *myTimer2 = new QTimer(this);
     connect(myTimer2,SIGNAL(timeout()),this,SLOT(timerSlot()));
     myTimer2->start(100);
@@ -122,11 +124,11 @@ Dialog::Dialog(QWidget *parent) :
 
 Dialog::~Dialog()
 {
-	lcdClear(lcd_h);
-	delete ui;
+    lcdClear(lcd_h);
+    delete ui;
 }
 
-// ovde se provjerava da li je USB Flash tu, ako nije prikazuje se message box
+//ovde se provjerava da li je USB Flash tu, ako nije prikazuje se greska
 void Dialog::timerSlot() {
     if(usbPath() == NULL) {
         if(usbFlag) {
@@ -144,8 +146,8 @@ void Dialog::timerSlot() {
                 lcdPutchar(lcd_h,0xFF);
             }
             myBox->show();
-            QCoreApplication::processEvents();
         }
+        QCoreApplication::processEvents();
     }
     else {
         if(!usbFlag) {
@@ -670,39 +672,39 @@ void Dialog::onHwBtnClicked(int btn) {
 //regulise prikaz na LCD, kao i automatsko skrolovanje teksta tekuce pjesme u GUI-u
 void Dialog::onEverySecond() {
     if(myPlayer->state() != QMediaPlayer::StoppedState) {
-		lcdPosition(lcd_h,0,0);     
-		lcdPrintf(lcd_h,currentSong.mid(scrollCounter,16).toLatin1().data());
+        lcdPosition(lcd_h,0,0);
+        lcdPrintf(lcd_h,currentSong.mid(scrollCounter,16).toLatin1().data());
 
-		if(scrollCounter+16 < currentSong.length()) {
-			scrollCounter++;
-		}
-		else {
-			scrollCounter = 0;
-		}
+        if(scrollCounter+16 < currentSong.length()) {
+            scrollCounter++;
+        }
+        else {
+            scrollCounter = 0;
+        }
 
-		lcdPosition(lcd_h,0,1);
-		if(!lcdMode) {
-			lcdPrintf(lcd_h,(QString::number(myPlayer->position()/1000/60) + ':' +
-						QString::number(myPlayer->position()/1000%60).rightJustified(2,'0') + '/' +
-						QString::number(myPlayer->duration()/1000/60) + ':' +
-						QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
-		}
-		else {
+        lcdPosition(lcd_h,0,1);
+        if(!lcdMode) {
+            lcdPrintf(lcd_h,(QString::number(myPlayer->position()/1000/60) + ':' +
+                        QString::number(myPlayer->position()/1000%60).rightJustified(2,'0') + '/' +
+                        QString::number(myPlayer->duration()/1000/60) + ':' +
+                        QString::number(myPlayer->duration()/1000%60).rightJustified(2,'0')).toLatin1().data());
+        }
+        else {
             lcdPrintf(lcd_h,"Podesi zvuk");
-		}
+        }
 
-		lcdPosition(lcd_h,12,1);
+        lcdPosition(lcd_h,12,1);
 
-		if(myPlayer->state() != QMediaPlayer::PausedState || lcdMode) {
-			lcdPutchar(lcd_h,0);
-			lcdPosition(lcd_h,13,1);
-			lcdPrintf(lcd_h,QString::number(myPlayer->volume()).rightJustified(3).toLatin1().data());
-		}
-		else {
-			lcdPrintf(lcd_h, "P ");
-			lcdPutchar(lcd_h,1);
-			lcdPutchar(lcd_h,' ');
-		}
+        if(myPlayer->state() != QMediaPlayer::PausedState || lcdMode) {
+            lcdPutchar(lcd_h,0);
+            lcdPosition(lcd_h,13,1);
+            lcdPrintf(lcd_h,QString::number(myPlayer->volume()).rightJustified(3).toLatin1().data());
+        }
+        else {
+            lcdPrintf(lcd_h, "P ");
+            lcdPutchar(lcd_h,1);
+            lcdPutchar(lcd_h,' ');
+        }
 
         if(ui->listWidget->horizontalScrollBar()->value() < ui->listWidget->horizontalScrollBar()->maximum()) {
             ui->listWidget->horizontalScrollBar()->setValue(ui->listWidget->horizontalScrollBar()->value()+7);
@@ -710,8 +712,8 @@ void Dialog::onEverySecond() {
         else {
             ui->listWidget->horizontalScrollBar()->setValue(0);
         }
-	}
-	else {
+    }
+    else {
         if(!myBox->isVisible() && !myBox2->isVisible()) {
             lcdClear(lcd_h);
             lcdPosition(lcd_h,0,0);
@@ -722,68 +724,68 @@ void Dialog::onEverySecond() {
                 lcdPutchar(lcd_h,0xFF);
             }
         }
-	}
+    }
 }
 
 //obradi bafer koji qaudioprobe posalje sa stream-a
 //ovo su dekodovani semplovi
 void Dialog::processBuffer(QAudioBuffer buffer){
-	qreal peakValue;
-	int duration;
+    qreal peakValue;
+    int duration;
 
-	if(buffer.frameCount() < 512)
-		return;
+    if(buffer.frameCount() < 512)
+        return;
 
     //ako nije stereo, onda nista
-	if(buffer.format().channelCount() != 2)
-		return;
+    if(buffer.format().channelCount() != 2)
+        return;
 
-	sample.resize(buffer.frameCount());
+    sample.resize(buffer.frameCount());
 
     //u zavisnosti od tipa podataka (signed int, unsigned int ili float), podesi peak value,
     //nadji aritmeticku sredinu oba kanala i normalizuj na [0,1]
-	if(buffer.format().sampleType() == QAudioFormat::SignedInt){
-		QAudioBuffer::S16S *data = buffer.data<QAudioBuffer::S16S>();
-		// peak value changes according to sample size.
-		if (buffer.format().sampleSize() == 32)
-			peakValue=INT_MAX;
-		else if (buffer.format().sampleSize() == 16)
-			peakValue=SHRT_MAX;
-		else
-			peakValue=CHAR_MAX;
+    if(buffer.format().sampleType() == QAudioFormat::SignedInt){
+        QAudioBuffer::S16S *data = buffer.data<QAudioBuffer::S16S>();
+        // peak value changes according to sample size.
+        if (buffer.format().sampleSize() == 32)
+            peakValue=INT_MAX;
+        else if (buffer.format().sampleSize() == 16)
+            peakValue=SHRT_MAX;
+        else
+            peakValue=CHAR_MAX;
 
-		for(int i=0; i<buffer.frameCount(); i++){
+        for(int i=0; i<buffer.frameCount(); i++){
             sample[i] = (data[i].left + data[i].right)/2/peakValue;
-		}
+        }
     }
-	else if(buffer.format().sampleType() == QAudioFormat::UnSignedInt){
-		QAudioBuffer::S16U *data = buffer.data<QAudioBuffer::S16U>();
-		if (buffer.format().sampleSize() == 32)
-			peakValue=UINT_MAX;
-		else if (buffer.format().sampleSize() == 16)
-			peakValue=USHRT_MAX;
-		else
-			peakValue=UCHAR_MAX;
-		for(int i=0; i<buffer.frameCount(); i++){
+    else if(buffer.format().sampleType() == QAudioFormat::UnSignedInt){
+        QAudioBuffer::S16U *data = buffer.data<QAudioBuffer::S16U>();
+        if (buffer.format().sampleSize() == 32)
+            peakValue=UINT_MAX;
+        else if (buffer.format().sampleSize() == 16)
+            peakValue=USHRT_MAX;
+        else
+            peakValue=UCHAR_MAX;
+        for(int i=0; i<buffer.frameCount(); i++){
             sample[i] = (data[i].left + data[i].right)/2/peakValue;
-		}
+        }
     }
-	else if(buffer.format().sampleType() == QAudioFormat::Float){
-		QAudioBuffer::S32F *data = buffer.data<QAudioBuffer::S32F>();
-		//peakValue = 1.00003;
-		peakValue = 1.0;
-		for(int i=0; i<buffer.frameCount(); i++){
-			sample[i] = (data[i].left + data[i].right)/2/peakValue;
+    else if(buffer.format().sampleType() == QAudioFormat::Float){
+        QAudioBuffer::S32F *data = buffer.data<QAudioBuffer::S32F>();
+        //peakValue = 1.00003;
+        peakValue = 1.0;
+        for(int i=0; i<buffer.frameCount(); i++){
+            sample[i] = (data[i].left + data[i].right)/2/peakValue;
             //nekad se desi da bude beskonacno, ovako moze da se provjeri
-			if(sample[i] != sample[i]){
-				sample[i] = 0;
+            if(sample[i] != sample[i]){
+                sample[i] = 0;
             }
-		}
-	}
+        }
+    }
 
     //ako je probe jos aktivan, racunaj fft
     if(probe->isActive()){
-		duration = buffer.format().durationForBytes(buffer.frameCount())/1000;
+        duration = buffer.format().durationForBytes(buffer.frameCount())/1000;
         calculator->calc(sample, duration, octaves, sampleRate); //posalji podatke u thread gdje ce se racunati fft
         //pogledati fftcalc.cpp za detalje
     }
@@ -792,18 +794,18 @@ void Dialog::processBuffer(QAudioBuffer buffer){
 //obrada spektra dobijenog iz thread-a
 //glavni dio je tamo odradjen, ovde se samo azuriraju progres bar-ovi za GUI
 void Dialog::loadSamples(QVector<double> samples) {
-	if(barsCount != samples.size()) {
+    if(barsCount != samples.size()) {
         for (int i=0; i<barsCount; i++) {
             myHLayout->removeWidget(arr[i]);
             arr[i]->deleteLater();
-		}
+        }
 
         barsCount = samples.size();
 
-		arr.resize(barsCount);
-		for(int i=0; i<barsCount; i++) {
+        arr.resize(barsCount);
+        for(int i=0; i<barsCount; i++) {
             arr[i] = new QProgressBar();
-			arr[i]->setOrientation(Qt::Vertical);
+            arr[i]->setOrientation(Qt::Vertical);
             arr[i]->setTextVisible(false);
             arr[i]->setFixedSize(QSize(10,ui->tableWidget_2->height()));
             myHLayout->addWidget(arr[i]);

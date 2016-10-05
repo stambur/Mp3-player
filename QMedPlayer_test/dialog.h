@@ -67,6 +67,7 @@ public slots:
 private:
     Ui::Dialog *ui;
     QMediaPlayer *myPlayer;
+    QMediaPlaylist *myPlaylist;
     int lcd_h;
     QString currentSong;
     int scrollCounter;
@@ -79,6 +80,7 @@ private:
     Lirc* myLirc;
     bool usbFlag;
     bool refreshFlag;
+    QString path;
 
     int barsCount;
     int octaves;

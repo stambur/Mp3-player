@@ -52,6 +52,7 @@ Dialog::Dialog(QWidget *parent) :
     barsCount = 0;
     octaves = 3;
     myPlayer = new QMediaPlayer(this);
+    myPlaylist = new QMediaPlaylist(this);
     myLirc = new Lirc(this); //klasa Lirc implementirana u lirc.cpp
 
     //dodavanje layout-a u GUI, gridLayout_2 postaje parent layout-u clanu klase
@@ -70,7 +71,8 @@ Dialog::Dialog(QWidget *parent) :
 
     //ucitavanje plejliste
     ui->tableWidget->setColumnCount(3);
-    if(usbPath() != NULL) {
+    path = QString::fromUtf8(usbPath());
+    if(!path.isNull()) {
         this->loadPlaylist();
     }
 
@@ -131,6 +133,7 @@ Dialog::~Dialog()
 //ovde se provjerava da li je USB Flash tu, ako nije prikazuje se greska
 void Dialog::timerSlot() {
     if(usbPath() == NULL) {
+        path.clear(); //stavi path na NULL
         if(usbFlag) {
             if(myBox2->isVisible()) {
                 myBox2->accept();
@@ -149,15 +152,36 @@ void Dialog::timerSlot() {
         }
         QCoreApplication::processEvents();
     }
-    else {
-        if(!usbFlag) {
+    else if(path != QString::fromUtf8(usbPath())) {
+        if(usbFlag) {
+            myPlayer->stop();
+            path = QString::fromUtf8(usbPath());
+            myPlayer->setPosition(0);
+            previousIndex = 0;
+            refreshFlag = 1;
+            this->loadPlaylist();
+            refreshFlag = 0;
+        }
+        else {
+            path = QString::fromUtf8(usbPath());
+            myPlayer->setPosition(0);
+            previousIndex = 0;
             this->loadPlaylist();
             myBox->accept();
             usbFlag = 1;
-            myPlayer->setPosition(0);
-            previousIndex = 0;
             refreshFlag = 0;
         }
+    }
+    else {
+//        if(!usbFlag) {
+//            path = QString::fromUtf8(usbPath());
+//            this->loadPlaylist();
+//            myBox->accept();
+//            usbFlag = 1;
+//            myPlayer->setPosition(0);
+//            previousIndex = 0;
+//            refreshFlag = 0;
+//        }
     }
 }
 
@@ -167,8 +191,8 @@ void Dialog::loadPlaylist() {
     if(ui->tableWidget->rowCount()) {
         ui->tableWidget->setRowCount(0);
     }
-    QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
-    QDir dir(directory);
+    //QString directory = QString::fromUtf8(usbPath());//usbPath() je funkcija iz getpath.cpp
+    QDir dir(path);
     QDirIterator it(dir.path(), QStringList() << "*.mp3", QDir::Files, QDirIterator::Subdirectories);
     QList<QMediaContent> content;
     QString f;
@@ -181,7 +205,7 @@ void Dialog::loadPlaylist() {
         {
             f = it.next();
             content.push_back(QUrl::fromLocalFile(f));
-            TagLib::FileRef fil(f.toLatin1().data());
+            TagLib::FileRef fil(f.toUtf8().data());
             ui->tableWidget->insertRow(count);
             ui->tableWidget->setItem(count,0,new QTableWidgetItem(QString::number(count+1) + '.'));
             ui->tableWidget->setItem(count,1,new QTableWidgetItem(it.fileName()));
@@ -191,7 +215,7 @@ void Dialog::loadPlaylist() {
         }
 
         //postavljanje plejliste za plejer i povezivanje odgovarajucih signala i slotova
-        QMediaPlaylist *myPlaylist = new QMediaPlaylist(this);
+        myPlaylist->clear();
         myPlaylist->addMedia(content);
         myPlayer->setPlaylist(myPlaylist);
 
@@ -309,7 +333,7 @@ void Dialog::onSongChanged(QMediaContent song) {
             }
 
             //popuni tabelu sa informacijama o tekucoj pjesmi
-            TagLib::FileRef file(song.canonicalUrl().path().toLatin1().data());
+            TagLib::FileRef file(song.canonicalUrl().path().toUtf8().data());
             sampleRate = file.audioProperties()->sampleRate();
 
             currentSong = song.canonicalUrl().fileName();

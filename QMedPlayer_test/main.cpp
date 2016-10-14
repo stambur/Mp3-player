@@ -2,7 +2,10 @@
 #include <QApplication>
 
 //za tastere sa DVK
-#define DEBOUNCE_TIME 100
+#define DEBOUNCE_TIME_1 100
+#define DEBOUNCE_TIME_2 100
+#define DEBOUNCE_TIME_3 100
+#define DEBOUNCE_TIME_4 300
 //Stylesheets za boje
 #define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:rgb(51, 151, 213);} \
                 QTableWidget[colorScheme=green]::item{selection-background-color:rgb(0, 170, 43);} \
@@ -20,7 +23,10 @@ void btn_int3(void);
 void btn_int4(void);
 uchar toggle_var_btn1,toggle_var_btn2,toggle_var_btn3,toggle_var_btn4 = 0;
 int time1_btn1,time1_btn2,time1_btn3,time1_btn4 = 0;
-int time2_btn1,time2_btn2,time2_btn3,time2_btn4 = DEBOUNCE_TIME;
+int time2_btn1 = DEBOUNCE_TIME_1;
+int time2_btn2 = DEBOUNCE_TIME_2;
+int time2_btn3 = DEBOUNCE_TIME_3;
+int time2_btn4 = DEBOUNCE_TIME_4;
 
 Dialog *w;
 
@@ -84,7 +90,7 @@ void btn_int1() {
         toggle_var_btn1 = 0;
     }
 
-    if((time2_btn1-time1_btn1 > DEBOUNCE_TIME) || (time1_btn1-time2_btn1 > DEBOUNCE_TIME)) {
+    if((time2_btn1-time1_btn1 > DEBOUNCE_TIME_1) || (time1_btn1-time2_btn1 > DEBOUNCE_TIME_1)) {
         emit w->hw_btn_clicked(BTN_1);
     }
 }
@@ -99,7 +105,7 @@ void btn_int2() {
         toggle_var_btn2 = 0;
     }
 
-    if((time2_btn2-time1_btn2 > DEBOUNCE_TIME) || (time1_btn2-time2_btn2 > DEBOUNCE_TIME)) {
+    if((time2_btn2-time1_btn2 > DEBOUNCE_TIME_2) || (time1_btn2-time2_btn2 > DEBOUNCE_TIME_2)) {
         emit w->hw_btn_clicked(BTN_2);
     }
 }
@@ -114,7 +120,7 @@ void btn_int3() {
         toggle_var_btn3 = 0;
     }
 
-    if((time2_btn3-time1_btn3 > DEBOUNCE_TIME) || (time1_btn3-time2_btn3 > DEBOUNCE_TIME)) {
+    if((time2_btn3-time1_btn3 > DEBOUNCE_TIME_3) || (time1_btn3-time2_btn3 > DEBOUNCE_TIME_3)) {
         emit w->hw_btn_clicked(BTN_3);
     }
 }
@@ -122,14 +128,16 @@ void btn_int3() {
 void btn_int4() {
     if(!toggle_var_btn4) {
         time1_btn4 = millis();
+        //qDebug() << "time1 = "<<time1_btn4;
         toggle_var_btn4 = 1;
     }
     else {
         time2_btn4 = millis();
+        //qDebug() << "time2 = "<<time2_btn4;
         toggle_var_btn4 = 0;
     }
 
-    if((time2_btn4-time1_btn4 > DEBOUNCE_TIME) || (time1_btn4-time2_btn4 > DEBOUNCE_TIME)) {
+    if((time2_btn4-time1_btn4 > DEBOUNCE_TIME_4) || (time1_btn4-time2_btn4 > DEBOUNCE_TIME_4)) {
         emit w->hw_btn_clicked(BTN_4);
     }
 }

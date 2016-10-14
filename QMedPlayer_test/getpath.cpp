@@ -24,6 +24,10 @@ char* usbPath()
             path=ent->mnt_dir;
             break;
         }
+        else if(strstr(ent->mnt_fsname,"/dev/sdd1")!=NULL) {
+            path=ent->mnt_dir;
+            break;
+        }
         //printf("%s\n", path);
     }
     endmntent(aFile);

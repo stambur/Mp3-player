@@ -2,10 +2,10 @@
 #include <QApplication>
 
 //za tastere sa DVK
-#define DEBOUNCE_TIME_1 100
-#define DEBOUNCE_TIME_2 100
-#define DEBOUNCE_TIME_3 100
-#define DEBOUNCE_TIME_4 300
+#define DEBOUNCE_TIME_1 50
+#define DEBOUNCE_TIME_2 50
+#define DEBOUNCE_TIME_3 50
+#define DEBOUNCE_TIME_4 30
 //Stylesheets za boje
 #define TABLESS "QTableWidget[colorScheme=blue]::item{selection-background-color:rgb(51, 151, 213);} \
                 QTableWidget[colorScheme=green]::item{selection-background-color:rgb(0, 170, 43);} \
@@ -21,12 +21,15 @@ void btn_int1(void);
 void btn_int2(void);
 void btn_int3(void);
 void btn_int4(void);
-uchar toggle_var_btn1,toggle_var_btn2,toggle_var_btn3,toggle_var_btn4 = 0;
-int time1_btn1,time1_btn2,time1_btn3,time1_btn4 = 0;
-int time2_btn1 = DEBOUNCE_TIME_1;
-int time2_btn2 = DEBOUNCE_TIME_2;
-int time2_btn3 = DEBOUNCE_TIME_3;
-int time2_btn4 = DEBOUNCE_TIME_4;
+void timer_btn1(void);
+void timer_btn2(void);
+void timer_btn3(void);
+void timer_btn4(void);
+uchar edge_flag1,edge_flag2,edge_flag3,edge_flag4 = 0;
+QTimer *timer1;
+QTimer *timer2;
+QTimer *timer3;
+QTimer *timer4;
 
 Dialog *w;
 
@@ -58,11 +61,24 @@ int main(int argc, char *argv[])
         pullUpDnControl(i, PUD_UP);
     }
 
+    timer1 = new QTimer;
+    timer2 = new QTimer;
+    timer3 = new QTimer;
+    timer4 = new QTimer;
+    QObject::connect(timer1, &QTimer::timeout, timer_btn1);
+    QObject::connect(timer2, &QTimer::timeout, timer_btn2);
+    QObject::connect(timer3, &QTimer::timeout, timer_btn3);
+    QObject::connect(timer4, &QTimer::timeout, timer_btn4);
+    timer1->setSingleShot(true);
+    timer2->setSingleShot(true);
+    timer3->setSingleShot(true);
+    timer4->setSingleShot(true);
+
     //registruj funkcije koje se izvrsavaju na pritisak tastera
-    wiringPiISR(BTN_1,INT_EDGE_RISING,btn_int1);
-    wiringPiISR(BTN_2,INT_EDGE_RISING,btn_int2);
-    wiringPiISR(BTN_3,INT_EDGE_RISING,btn_int3);
-    wiringPiISR(BTN_4,INT_EDGE_RISING,btn_int4);
+    wiringPiISR(BTN_1,INT_EDGE_BOTH,btn_int1);
+    wiringPiISR(BTN_2,INT_EDGE_BOTH,btn_int2);
+    wiringPiISR(BTN_3,INT_EDGE_BOTH,btn_int3);
+    wiringPiISR(BTN_4,INT_EDGE_BOTH,btn_int4);
 
     //konstruisi glavni GUI dijalog
     //moralo je ovako dinamicki posto mi treba globalni pokazivac na njega zbog funkcija za tastere
@@ -74,6 +90,10 @@ int main(int argc, char *argv[])
 
     retVal = a.exec();
 
+    delete timer1;
+    delete timer2;
+    delete timer3;
+    delete timer4;
     delete w;
     return retVal;
 }
@@ -81,63 +101,57 @@ int main(int argc, char *argv[])
 
 //funkcije za debouncing tastera i slanje signala sa brojem tastera koji je pritisnut
 void btn_int1() {
-    if(!toggle_var_btn1) {
-        time1_btn1 = millis();
-        toggle_var_btn1 = 1;
-    }
-    else {
-        time2_btn1 = millis();
-        toggle_var_btn1 = 0;
-    }
-
-    if((time2_btn1-time1_btn1 > DEBOUNCE_TIME_1) || (time1_btn1-time2_btn1 > DEBOUNCE_TIME_1)) {
-        emit w->hw_btn_clicked(BTN_1);
+    if(!edge_flag1) {
+        edge_flag1 = 1;
+        timer1->start(DEBOUNCE_TIME_1);
     }
 }
 
 void btn_int2() {
-    if(!toggle_var_btn2) {
-        time1_btn2 = millis();
-        toggle_var_btn2 = 1;
-    }
-    else {
-        time2_btn2 = millis();
-        toggle_var_btn2 = 0;
-    }
-
-    if((time2_btn2-time1_btn2 > DEBOUNCE_TIME_2) || (time1_btn2-time2_btn2 > DEBOUNCE_TIME_2)) {
-        emit w->hw_btn_clicked(BTN_2);
+    if(!edge_flag2) {
+        edge_flag2 = 1;
+        timer2->start(DEBOUNCE_TIME_2);
     }
 }
 
 void btn_int3() {
-    if(!toggle_var_btn3) {
-        time1_btn3 = millis();
-        toggle_var_btn3 = 1;
-    }
-    else {
-        time2_btn3 = millis();
-        toggle_var_btn3 = 0;
-    }
-
-    if((time2_btn3-time1_btn3 > DEBOUNCE_TIME_3) || (time1_btn3-time2_btn3 > DEBOUNCE_TIME_3)) {
-        emit w->hw_btn_clicked(BTN_3);
+    if(!edge_flag3) {
+        edge_flag3 = 1;
+        timer3->start(DEBOUNCE_TIME_3);
     }
 }
 
 void btn_int4() {
-    if(!toggle_var_btn4) {
-        time1_btn4 = millis();
-        //qDebug() << "time1 = "<<time1_btn4;
-        toggle_var_btn4 = 1;
+    if(!edge_flag4) {
+        edge_flag4 = 1;
+        timer4->start(DEBOUNCE_TIME_4);
     }
-    else {
-        time2_btn4 = millis();
-        //qDebug() << "time2 = "<<time2_btn4;
-        toggle_var_btn4 = 0;
-    }
+}
 
-    if((time2_btn4-time1_btn4 > DEBOUNCE_TIME_4) || (time1_btn4-time2_btn4 > DEBOUNCE_TIME_4)) {
+void timer_btn1() {
+    edge_flag1 = 0;
+    if(!digitalRead(BTN_1)) {
+        emit w->hw_btn_clicked(BTN_1);
+    }
+}
+
+void timer_btn2() {
+    edge_flag2 = 0;
+    if(!digitalRead(BTN_2)) {
+        emit w->hw_btn_clicked(BTN_2);
+    }
+}
+
+void timer_btn3() {
+    edge_flag3 = 0;
+    if(!digitalRead(BTN_3)) {
+        emit w->hw_btn_clicked(BTN_3);
+    }
+}
+
+void timer_btn4() {
+    edge_flag4 = 0;
+    if(!digitalRead(BTN_4)) {
         emit w->hw_btn_clicked(BTN_4);
     }
 }
